@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-import { error } from 'console';
-
-const prisma = new PrismaClient;
+import { prisma } from '@/lib/prisma';
 
 export async function POST(request: Request) {
     try {
@@ -44,5 +41,17 @@ export async function POST(request: Request) {
         }
 
         return NextResponse.json({ error: 'Terjadi kesalahan pada server.' }, { status: 500 });
+    }
+}
+
+export async function GET() {
+    try {
+        const parts = await prisma.parts.findMany({
+            orderBy: { part_name: 'asc'}
+        })
+
+        return NextResponse.json(parts, { status: 200 })
+    } catch (error) {
+        return NextResponse.json({ error: "Gagal mengambil data parts "}, { status: 500 })
     }
 }
