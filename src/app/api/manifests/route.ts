@@ -72,7 +72,6 @@ export async function POST(request: Request) {
         driver_name,
         vehicle_plate,
         // Konversi string tanggal ke object Date
-        departure_date: new Date(),
         estimated_arrival: estimated_arrival ? new Date(estimated_arrival) : null, // Bisa dibuatkan api khusus untuk mengambil data tanggal dari frontend
         status: 'draft',
 

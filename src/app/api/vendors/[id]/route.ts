@@ -17,6 +17,8 @@ export async function GET(request: Request, { params }: RouteParams) {
             return NextResponse.json({ error: 'Vendor tidak ditemukan '}, { status: 404 });
         }
 
+        console.log(vendor);
+
         return NextResponse.json(vendor);
     } catch (error) {
         return NextResponse.json({ error: 'Internal server error '}, { status: 500 })
