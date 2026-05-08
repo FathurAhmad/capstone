@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { ManifestStatus } from "@prisma/client";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -34,7 +35,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       where: { id },
       data: {
         is_locked: true,
-        status: "locked",
+        status: ManifestStatus.LOCKED,
         departure_date: new Date(),
         locked_at: new Date()
       },

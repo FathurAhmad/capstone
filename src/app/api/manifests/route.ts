@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { ManifestStatus } from "@prisma/client";
 
 export async function GET() {
     try {
@@ -37,7 +38,7 @@ export async function POST(request: Request) {
     }
 
     // Mencari vendor id sebagai salah satu bagian dari manifest number
-    const vendor = await prisma.vendors.findUnique({
+    const vendor = await prisma.vendors.findFirst({
       where: { id: vendor_id },
       select: { name: true } // Mengambil id berdasarkan input nama
     })
@@ -64,6 +65,8 @@ export async function POST(request: Request) {
     const sequence = (dailyManifestsCount + 1).toString().padStart(3, '0');
     const generatedManifestNumber = `${vendorCode}-${dateString}-${sequence}`;
 
+    console.log(`Urutan manifest:`, sequence)
+
     // Eksekusi Database (Prisma Transaction)
     const newManifest = await prisma.manifests.create({
       data: {
@@ -73,7 +76,6 @@ export async function POST(request: Request) {
         vehicle_plate,
         // Konversi string tanggal ke object Date
         estimated_arrival: estimated_arrival ? new Date(estimated_arrival) : null, // Bisa dibuatkan api khusus untuk mengambil data tanggal dari frontend
-        status: 'draft',
 
         // Insert ke tabel manifest_items secara bersamaan
         manifest_items: {
@@ -104,9 +106,9 @@ export async function POST(request: Request) {
     console.error('Error saat membuat manifest:', error);
     
     // Tangani error jika manifest_number duplikat (Unique Constraint)
-    // if (error.code === 'P2002') {
-    //   return NextResponse.json({ error: 'Nomor manifest sudah pernah digunakan.' }, { status: 409 });
-    // }
+    if (error.code === 'P2002') {
+      return NextResponse.json({ error: 'Nomor manifest sudah pernah digunakan.' }, { status: 409 });
+    }
 
     return NextResponse.json({ error: 'Terjadi kesalahan pada server.' }, { status: 500 });
   }
