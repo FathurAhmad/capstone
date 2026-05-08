@@ -1,7 +1,21 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client"; // Sesuaikan jika Anda menaruh prisma.ts di tempat lain
+import { prisma } from "@/lib/prisma";
+import { ManifestStatus } from "@prisma/client";
 
-const prisma = new PrismaClient();
+export async function GET() {
+  try {
+    const manifests = await prisma.manifests.findMany({
+      orderBy: { manifest_number: "asc" },
+      include: {
+        manifest_items: true,
+      },
+    });
+
+    return NextResponse.json(manifests, { status: 200 });
+  } catch (error) {
+    return NextResponse.json({ error: "Gagal mengambil data manifests" }, { status: 500 });
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -16,14 +30,14 @@ export async function POST(request: Request) {
     } = body;
 
     // Validasi Dasar
-    if (!vendor_id || !items || items.length === 0) {
-      return NextResponse.json({ error: "Data tidak lengkap. Pastikan vendor_id dan items terisi." }, { status: 400 });
+    if (!vendor_id || !items || !driver_name || !vehicle_plate || items.length === 0) {
+      return NextResponse.json({ error: "Data tidak lengkap. Pastikan semua kolom sudah terisi." }, { status: 400 });
     }
 
     // Mencari vendor id sebagai salah satu bagian dari manifest number
-    const vendor = await prisma.vendors.findUnique({
+    const vendor = await prisma.vendors.findFirst({
       where: { id: vendor_id },
-      select: { name: true },
+      select: { name: true }, // Mengambil id berdasarkan input nama
     });
 
     // Mengambil 4 digit pertama dari vendor id
@@ -48,6 +62,8 @@ export async function POST(request: Request) {
     const sequence = (dailyManifestsCount + 1).toString().padStart(3, "0");
     const generatedManifestNumber = `${vendorCode}-${dateString}-${sequence}`;
 
+    console.log(`Urutan manifest:`, sequence);
+
     // Eksekusi Database (Prisma Transaction)
     const newManifest = await prisma.manifests.create({
       data: {
@@ -56,13 +72,7 @@ export async function POST(request: Request) {
         driver_name,
         vehicle_plate,
         // Konversi string tanggal ke object Date
-        departure_date: new Date(),
-        estimated_arrival: estimated_arrival ? new Date(estimated_arrival) : null,
-
-        // Eksekusi Fitur DIGITAL LOCKING
-        is_locked: true,
-        locked_at: new Date(),
-        status: "locked",
+        estimated_arrival: estimated_arrival ? new Date(estimated_arrival) : null, // Bisa dibuatkan api khusus untuk mengambil data tanggal dari frontend
 
         // Insert ke tabel manifest_items secara bersamaan
         manifest_items: {
@@ -83,7 +93,7 @@ export async function POST(request: Request) {
     // 3. Kembalikan Response Sukses
     return NextResponse.json(
       {
-        message: "Manifest berhasil dibuat dan dikunci digital.",
+        message: "Manifest berhasil disimpan.",
         data: newManifest,
       },
       { status: 201 },
