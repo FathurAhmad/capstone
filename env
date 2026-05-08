@@ -1,0 +1,31 @@
+# Environment variables declared in this file are NOT automatically loaded by Prisma.
+
+# Please add `import "dotenv/config";` to your `prisma.config.ts` file, or use the Prisma CLI with Bun
+
+# to load environment variables from .env files: https://pris.ly/prisma-config-env-vars.
+
+# Prisma supports the native connection string format for PostgreSQL, MySQL, SQLite, SQL Server, MongoDB and CockroachDB.
+
+# See the documentation for all the connection string options: https://pris.ly/d/connection-strings
+
+# The following `prisma+postgres` URL is similar to the URL produced by running a local Prisma Postgres
+
+# server with the `prisma dev` CLI command, when not choosing any non-default ports or settings. The API key, unlike the
+
+# one found in a remote Prisma Postgres URL, does not contain any sensitive information.
+
+# Koneksi Prisma ke Database (Gunakan Transaction pooler URL dari Supabase)
+
+# DATABASE_URL="postgresql://postgres.gugwavcplsgwsxnpdwnk:kelompok1capstonea1@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true&statement_cache_size=0"
+
+DATABASE_URL="postgresql://postgres:kelompok1capstonea1@db.gugwavcplsgwsxnpdwnk.supabase.co:5432/postgres?pgbouncer=true&statement_cache_size=0"
+
+# Koneksi Prisma untuk Migrasi (Gunakan Session URL dari Supabase)
+
+DIRECT_URL="postgresql://postgres.gugwavcplsgwsxnpdwnk:kelompok1capstonea1@aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres"
+
+# Kredensial Supabase Client
+
+NEXT_PUBLIC_SUPABASE_URL="https://gugwavcplsgwsxnpdwnk.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd1Z3dhdmNwbHNnd3N4bnBkd25rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3NDUzOTYsImV4cCI6MjA5MjMyMTM5Nn0.wTXLWf1SRgZR6JRAyDWhy_gFL12wpl3JuprF_DQx0_w"
+SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd1Z3dhdmNwbHNnd3N4bnBkd25rIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Njc0NTM5NiwiZXhwIjoyMDkyMzIxMzk2fQ.iNFNiLbBDjmE81T4xiuyNCBagQpEOaSfwO0cwXF7qm4"
