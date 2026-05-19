@@ -25,7 +25,7 @@ export async function POST(request: Request) {
       vendor_id, 
       driver_name, 
       vehicle_plate, 
-      estimated_arrival, 
+      estimated_arrival, // Perlu dibuatkan jalur khusus agar menerima payload data tanggal dari fe
       items // Ini adalah array of objects (daftar barang)
     } = body;
 
