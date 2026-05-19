@@ -32,7 +32,7 @@ export async function POST(request: Request) {
                 where: { id: manifest.id },
                 data: { 
                     status:ManifestStatus.CHECKING,
-                    is_locked: false
+                    is_locked: false,
                 }
             })
 
@@ -41,6 +41,7 @@ export async function POST(request: Request) {
                     manifest_id: manifest.id,
                     created_by: user_id,
                     gate_number: gate_number || null,
+                    actual_arrival: new Date,
                     started_at: new Date
                 }
             })

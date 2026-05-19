@@ -11,32 +11,52 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     const body = await request.json();
     const { full_name, password } = body;
 
+    // 1. Update password di Supabase Auth (JIKA password diisi)
     if (password) {
-      const { error: authUpdateError } =
-        await supabaseAdmin.auth.admin.updateUserById(id, {
-          password: password || undefined,
-        });
+      if (password.length < 6) {
+        return NextResponse.json(
+          { error: "Password minimal harus 6 karakter" },
+          { status: 400 }
+        );
+      }
+
+      const { error: authUpdateError } = await supabaseAdmin.auth.admin.updateUserById(id, {
+        password: password,
+      });
 
       if (authUpdateError) {
         return NextResponse.json(
-          { error: authUpdateError.message },
-          { status: 400 },
+          { error: authUpdateError.message || "Gagal mengubah password" },
+          { status: 400 }
         );
       }
     }
 
-    const updateProfile = await prisma.profiles.update({
-        where: { id },
-        data: {
-            full_name,
-            password,
-            updated_at: new Date()
-        }
-    })
+    // 2. Update data profil di Prisma (JANGAN masukkan password ke sini)
+    // Buat object update dinamis agar tidak error kalau full_name kosong
+    const updateData: any = {
+      updated_at: new Date(),
+    };
+    
+    if (full_name) {
+      updateData.full_name = full_name;
+    }
 
-    return NextResponse.json({ message: 'Data berhasil diubah'}, { status: 200 })
+    await prisma.profiles.update({
+      where: { id },
+      data: updateData,
+    });
+
+    return NextResponse.json(
+      { message: "Data profil berhasil diperbarui" }, 
+      { status: 200 }
+    );
   } catch (error) {
-    return NextResponse.json({ error: 'Internal server error'}, { status: 500 })
+    console.error("PATCH User Error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" }, 
+      { status: 500 }
+    );
   }
 }
 
