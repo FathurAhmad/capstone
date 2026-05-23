@@ -41,6 +41,8 @@ export default function LoginPage() {
       // (Asumsi backend merespons dengan data.session.access_token)
       if (data.session?.access_token) {
         localStorage.setItem("access_token", data.session.access_token);
+        // Simpan ke cookie agar bisa dibaca oleh middleware.ts
+        document.cookie = `access_token=${data.session.access_token}; path=/; max-age=86400;`;
       }
 
       // 🛑 2. PASTIKAN MAP ROLE SESUAI DATABASE (Contoh disamakan ke Uppercase)

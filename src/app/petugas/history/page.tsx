@@ -39,44 +39,6 @@ export default function PetugasHistory() {
 
   return (
     <div className="min-h-screen bg-[#f0f4f8]">
-      <nav className="bg-white px-8 py-4 flex items-center justify-between border-b border-gray-200">
-        <img src="/login/logo.png" alt="Match-Up Logo" className="h-12" />
-        <div className="flex items-center gap-6">
-          <a href="/petugas/dashboard" className="flex flex-col items-center gap-1 text-xs text-gray-600 hover:text-[#1a3a7c]">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-            </svg>
-            Dashboard
-          </a>
-          <a href="/petugas/logistic-tracking" className="flex flex-col items-center gap-1 text-xs text-gray-600 hover:text-[#1a3a7c]">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V7a2 2 0 00-2-2h-3V3H9v2H6a2 2 0 00-2 2v6m16 0l-2 6H6l-2-6m16 0H4" />
-            </svg>
-            Logistic Tracking
-          </a>
-          <a href="/petugas/history" className="flex flex-col items-center gap-1 text-xs text-[#1a3a7c] font-semibold">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-            History
-          </a>
-          <div className="w-px h-8 bg-gray-200" />
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-700">Ailsa Zahra</span>
-            <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden">
-              <img
-                src="/vendor/avatar.png"
-                alt="avatar"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none";
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      </nav>
-
       <div className="px-8 py-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Shipment History</h1>

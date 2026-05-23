@@ -1,47 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import Navbar from "@/components/Navbar";
+import { useAuth } from "@/app/context/authContext";
 
-const vendorMenu = [
-  {
-    label: "Dashboard",
-    href: "/vendor/dashboard",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-      </svg>
-    ),
-  },
-  {
-    label: "New Shipment",
-    href: "/vendor/new-shipment",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-      </svg>
-    ),
-  },
-  {
-    label: "History",
-    href: "/vendor/history",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-      </svg>
-    ),
-  },
-];
+type Part = {
+  id: string;
+  part_number: string;
+  part_name: string;
+  unit: string;
+};
 
-type ManifestRow = {
+// Update tipe data row untuk mencocokkan field dari API
+type ManifestRowUpdated = {
   id: number;
-  partNumber: string;
-  partName: string;
+  part_id: string;
   qty: string;
   totalPackages: string;
-  weight: string;
+  batch_code: string;
 };
 
 export default function NewShipment() {
@@ -50,7 +28,35 @@ export default function NewShipment() {
   const [vehiclePlate, setVehiclePlate] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showCalendar, setShowCalendar] = useState(false);
-  const [rows, setRows] = useState<ManifestRow[]>([{ id: 1, partNumber: "", partName: "", qty: "", totalPackages: "", weight: "" }]);
+
+  // State untuk menyimpan daftar parts dari API
+  const [partsList, setPartsList] = useState<Part[]>([]);
+
+  const [rows, setRows] = useState<ManifestRowUpdated[]>([
+    { id: 1, part_id: "", qty: "", totalPackages: "", batch_code: "" }
+  ]);
+
+  // TODO: Uncomment to get vendor_id if you are using auth context
+  const { user } = useAuth();
+
+  useEffect(() => {
+    // Ambil data parts saat komponen pertama kali di-mount
+    const fetchParts = async () => {
+      try {
+        const res = await fetch('/api/parts');
+        if (res.ok) {
+          const data = await res.json();
+          setPartsList(data);
+        } else {
+          console.error("Gagal mengambil data parts");
+        }
+      } catch (error) {
+        console.error("Error fetching parts:", error);
+      }
+    };
+
+    fetchParts();
+  }, []);
 
   const formatDate = (date: Date) => {
     const d = date.getDate().toString().padStart(2, "0");
@@ -60,7 +66,7 @@ export default function NewShipment() {
   };
 
   const addRow = () => {
-    setRows([...rows, { id: rows.length + 1, partNumber: "", partName: "", qty: "", totalPackages: "", weight: "" }]);
+    setRows([...rows, { id: rows.length + 1, part_id: "", qty: "", totalPackages: "", batch_code: "" }]);
   };
 
   const deleteRow = (id: number) => {
@@ -68,30 +74,51 @@ export default function NewShipment() {
     setRows(rows.filter((r) => r.id !== id));
   };
 
-  const updateRow = (id: number, field: keyof ManifestRow, value: string) => {
+  const updateRow = (id: number, field: keyof ManifestRowUpdated, value: string) => {
     setRows(rows.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
+  };
+
+  const handleSubmit = async () => {
+    try {
+      const payload = {
+        // Gunakan user?.id jika ada, jika tidak fallback ke ID test
+        vendor_id: user?.vendor_id,
+        driver_name: driverName,
+        vehicle_plate: vehiclePlate,
+        estimated_arrival: selectedDate.toISOString(),
+        items: rows.map(row => ({
+          part_id: row.part_id,
+          expected_qty: parseInt(row.qty) || 0,
+          expected_boxes: parseInt(row.totalPackages) || 0,
+          batch_code: row.batch_code, // Sesuai payload test dari user
+        }))
+      };
+
+      const res = await fetch('/api/manifests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert("Manifest berhasil disimpan!");
+      } else {
+        alert(data.error || "Terjadi kesalahan saat menyimpan manifest");
+      }
+    } catch (error) {
+      console.error("Error submitting manifest:", error);
+      alert("Terjadi kesalahan pada server");
+    }
   };
 
   return (
     <div className="min-h-screen bg-[#f0f4f8]">
-      <Navbar items={vendorMenu} />
-
       <div className="px-4 md:px-8 py-4 md:py-6">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">New Shipment</h1>
 
         <div className="bg-white rounded-xl p-4 md:p-6">
-          {/* TOP FIELDS */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Shipment ID</label>
-              <input
-                type="text"
-                placeholder="Shipment ID"
-                value={shipmentId}
-                onChange={(e) => setShipmentId(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-600 outline-none focus:border-blue-400"
-              />
-            </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Driver Name</label>
               <input
@@ -136,97 +163,86 @@ export default function NewShipment() {
             </div>
           </div>
 
-          {/* MANIFEST TABLE */}
           <p className="font-semibold text-gray-800 mb-3">Manifest Input</p>
           <div className="border border-gray-200 rounded-xl overflow-hidden mb-4 overflow-x-auto">
             <table className="w-full text-sm min-w-[600px]">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="text-left px-3 md:px-4 py-3 font-semibold text-gray-700 w-10">No</th>
-                  <th className="text-left px-3 md:px-4 py-3 font-semibold text-gray-700">Part Number</th>
-                  <th className="text-left px-3 md:px-4 py-3 font-semibold text-gray-700">Part Name</th>
+                  <th className="text-left px-3 md:px-4 py-3 font-semibold text-gray-700 w-48">Part Name</th>
+                  <th className="text-left px-3 md:px-4 py-3 font-semibold text-gray-700 w-48">Part Number</th>
                   <th className="text-left px-3 md:px-4 py-3 font-semibold text-gray-700">Qty per pkg</th>
                   <th className="text-left px-3 md:px-4 py-3 font-semibold text-gray-700">Total Packages</th>
-                  <th className="text-left px-3 md:px-4 py-3 font-semibold text-gray-700">Weight (gr)</th>
+                  <th className="text-left px-3 md:px-4 py-3 font-semibold text-gray-700">Batch Code</th>
                   <th className="text-left px-3 md:px-4 py-3 font-semibold text-gray-700">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row, index) => (
-                  <tr key={row.id} className="border-t border-gray-100">
-                    <td className="px-3 md:px-4 py-3 text-gray-500 text-xs">{String(index + 1).padStart(2, "0")}.</td>
-                    <td className="px-2 py-3">
-                      <input
-                        type="text"
-                        placeholder="Part Number"
-                        value={row.partNumber}
-                        onChange={(e) => updateRow(row.id, "partNumber", e.target.value)}
-                        className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-blue-400"
-                      />
-                    </td>
-                    <td className="px-2 py-3">
-                      <input
-                        type="text"
-                        placeholder="Part Name"
-                        value={row.partName}
-                        onChange={(e) => updateRow(row.id, "partName", e.target.value)}
-                        className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-blue-400"
-                      />
-                    </td>
-                    <td className="px-2 py-3">
-                      <input
-                        type="text"
-                        placeholder="Qty"
-                        value={row.qty}
-                        onChange={(e) => updateRow(row.id, "qty", e.target.value)}
-                        className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-blue-400"
-                      />
-                    </td>
-                    <td className="px-2 py-3">
-                      <input
-                        type="text"
-                        placeholder="Total"
-                        value={row.totalPackages}
-                        onChange={(e) => updateRow(row.id, "totalPackages", e.target.value)}
-                        className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-blue-400"
-                      />
-                    </td>
-                    <td className="px-2 py-3">
-                      <input
-                        type="text"
-                        placeholder="Weight"
-                        value={row.weight}
-                        onChange={(e) => updateRow(row.id, "weight", e.target.value)}
-                        className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-blue-400"
-                      />
-                    </td>
-                    <td className="px-2 py-3">
-                      <div className="flex items-center gap-1">
-                        <button className="w-8 h-8 border border-gray-200 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-500">
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                        <button onClick={() => deleteRow(row.id)} className="w-8 h-8 border border-gray-200 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500">
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                        <button className="w-8 h-8 border border-gray-200 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-500">
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                            />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {rows.map((row, index) => {
+                  const selectedPart = partsList.find(p => p.id === row.part_id);
+
+                  return (
+                    <tr key={row.id} className="border-t border-gray-100">
+                      <td className="px-3 md:px-4 py-3 text-gray-500 text-xs">{String(index + 1).padStart(2, "0")}.</td>
+                      <td className="px-2 py-3">
+                        <select
+                          value={row.part_id}
+                          onChange={(e) => updateRow(row.id, "part_id", e.target.value)}
+                          className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-blue-400 bg-white"
+                        >
+                          <option value="">- Select Part -</option>
+                          {partsList.map(part => (
+                            <option key={part.id} value={part.id}>
+                              {part.part_name}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-2 py-3">
+                        {/* Part Name otomatis terisi berdasarkan Part Number yang dipilih */}
+                        <div className="w-full border border-gray-100 bg-gray-50 rounded-lg px-2 py-1.5 text-sm text-gray-500 min-h-[34px] flex items-center">
+                          {selectedPart ? selectedPart.part_number : "Select a part..."}
+                        </div>
+                      </td>
+                      <td className="px-2 py-3">
+                        <input
+                          type="number"
+                          placeholder="Qty"
+                          value={row.qty}
+                          onChange={(e) => updateRow(row.id, "qty", e.target.value)}
+                          className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-blue-400"
+                        />
+                      </td>
+                      <td className="px-2 py-3">
+                        <input
+                          type="number"
+                          placeholder="Total"
+                          value={row.totalPackages}
+                          onChange={(e) => updateRow(row.id, "totalPackages", e.target.value)}
+                          className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-blue-400"
+                        />
+                      </td>
+                      <td className="px-2 py-3">
+                        <input
+                          type="text"
+                          placeholder="Batch Code"
+                          value={row.batch_code}
+                          onChange={(e) => updateRow(row.id, "batch_code", e.target.value)}
+                          className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-blue-400"
+                        />
+                      </td>
+                      <td className="px-2 py-3">
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => deleteRow(row.id)} className="w-8 h-8 border border-gray-200 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -235,7 +251,9 @@ export default function NewShipment() {
             <button onClick={addRow} className="border-2 border-[#1a3a7c] text-[#1a3a7c] font-semibold px-6 py-2.5 rounded-lg hover:bg-blue-50 text-sm w-full sm:w-auto">
               + Add Column
             </button>
-            <button className="bg-[#1a3a7c] text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-[#152f66] text-sm w-full sm:w-auto">Submit & Generate QR Labels</button>
+            <button onClick={handleSubmit} className="bg-[#1a3a7c] text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-[#152f66] text-sm w-full sm:w-auto">
+              Submit & Generate QR Labels
+            </button>
           </div>
         </div>
       </div>
