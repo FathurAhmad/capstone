@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { convertServerPatchToFullTree } from "next/dist/client/components/segment-cache/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,17 +14,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const roles = ["Vendor", "Petugas Gudang", "Manager"];
-
-  const roleDashboardMap: Record<string, string> = {
-    Vendor: "/vendor/dashboard",
-    "Petugas Gudang": "/petugas/dashboard",
-    Manager: "/manajemen/dashboard",
-  };
-
   const handleLogin = async () => {
-    if (!email || !password || !role) {
-      setError("Email, password, dan role wajib diisi.");
+    if (!email || !password) {
+      setError("Email dan password wajib diisi");
       return;
     }
 
@@ -34,20 +27,42 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, role }),
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.message || "Login gagal.");
+        setError(data.error || data.message || "Login gagal.");
         return;
       }
 
-      const path = roleDashboardMap[data.role] ?? "/";
+      // 🛑 1. SIMPAN TOKEN KE LOCAL STORAGE AGAR TIDAK LUPA
+      // (Asumsi backend merespons dengan data.session.access_token)
+      if (data.session?.access_token) {
+        localStorage.setItem("access_token", data.session.access_token);
+      }
+
+      // 🛑 2. PASTIKAN MAP ROLE SESUAI DATABASE (Contoh disamakan ke Uppercase)
+      // Misal data dari Prisma: data.user.role = "VENDOR"
+      const role = data.user?.role || data.role || "";
+      const userRole = role.toUpperCase() // Sesuaikan dengan struktur JSON backend
+      
+      const roleMap: Record<string, string> = {
+        "VENDOR": "/vendor/dashboard",
+        "STAFF": "/petugas/dashboard",   // Di DB namanya STAFF, bukan Petugas Gudang
+        "MANAGER": "/manajemen/dashboard",
+        "ADMIN": "/manajemen/dashboard",        
+      };
+
+      // 🛑 3. REDIRECT
+      // Ubah jadi uppercase untuk amannya saat mencocokkan
+      const path = roleMap[userRole] ?? "/"; 
       router.push(path);
-    } catch {
-      setError("Terjadi kesalahan. Coba lagi.");
+
+    } catch (err) {
+      console.error(err);
+      setError("Terjadi kesalahan jaringan. Coba lagi.");
     } finally {
       setLoading(false);
     }
@@ -83,7 +98,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Select Role */}
+          {/* Select Role
           <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-1">Select Role</label>
             <button onClick={() => setDropdownOpen(!dropdownOpen)} className="w-full flex items-center justify-between border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
@@ -107,7 +122,7 @@ export default function LoginPage() {
                 ))}
               </div>
             )}
-          </div>
+          </div> */}
 
           {/* Error Message */}
           {error && <p className="text-red-500 text-sm -mt-2">{error}</p>}

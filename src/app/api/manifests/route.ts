@@ -8,6 +8,7 @@ export async function GET() {
       orderBy: { manifest_number: "asc" },
       include: {
         manifest_items: true,
+        vendors: true, // Prisma will automatically JOIN the vendors table here!
       },
     });
 
@@ -20,15 +21,6 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-<<<<<<< HEAD
-    // Destructuring data yang dikirim dari Frontend / Postman
-    const {
-      vendor_id,
-      driver_name,
-      vehicle_plate,
-      estimated_arrival,
-      items, // Ini adalah array of objects (daftar barang)
-=======
         // Destructuring data yang dikirim dari Frontend / Postman
     const { 
       vendor_id, 
@@ -36,7 +28,6 @@ export async function POST(request: Request) {
       vehicle_plate, 
       estimated_arrival, // Perlu dibuatkan jalur khusus agar menerima payload data tanggal dari fe
       items // Ini adalah array of objects (daftar barang)
->>>>>>> 0abdc40060cebfc913ffac559e9c70099a4ae5a1
     } = body;
 
     // Validasi Dasar

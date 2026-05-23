@@ -3,6 +3,20 @@
 import { useState } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
+import { useAuth } from "@/app/context/authContext";
+
+type Manifest = {
+  id: string,
+  date: string,
+  vendor_id: string,
+  status: string,
+  manifest_items: [
+    batch_code: string,
+    part_id: string,
+    expected_qty: string,
+    expected_boxes: string
+  ]
+}
 
 type Shipment = {
   id: string;
@@ -29,6 +43,7 @@ export default function ManajemenHistory() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [detailItem, setDetailItem] = useState<Shipment | null>(null);
   const [photoItem, setPhotoItem] = useState<Shipment | null>(null);
+  
 
   const formatDate = (date: Date) => {
     const d = date.getDate().toString().padStart(2, "0");
