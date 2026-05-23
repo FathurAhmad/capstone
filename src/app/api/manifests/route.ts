@@ -7,7 +7,8 @@ export async function GET() {
         const manifests = await prisma.manifests.findMany({
             orderBy: { manifest_number: 'asc'},
             include: {
-                manifest_items: true
+                manifest_items: true,
+                vendors: true
             }
         })
 
