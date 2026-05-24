@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import Navbar from "@/components/Navbar";
+import { useAuth } from "@/app/context/authContext";
 
 type Shipment = {
   id: string;
@@ -18,18 +19,59 @@ type Shipment = {
   totalWeight: string;
 };
 
-const shipments: Shipment[] = [
-  { id: "ID#1234", date: "Oct 26, 2026", item: "Part A1", tipe: "Mismatch", status: "Returned", partNumber: "A1", partName: "Screw", totalItem: "200 pcs", totalBox: "10 box", totalWeight: "200 gr" },
-  { id: "ID#1234", date: "Oct 26, 2026", item: "Part A2", tipe: "Mismatch", status: "Returned", partNumber: "A2", partName: "Bolt", totalItem: "150 pcs", totalBox: "8 box", totalWeight: "180 gr" },
-  { id: "ID#1234", date: "Oct 26, 2026", item: "Part A3", tipe: "Mismatch", status: "Returned", partNumber: "A3", partName: "Nut", totalItem: "300 pcs", totalBox: "12 box", totalWeight: "250 gr" },
-  { id: "ID#1234", date: "Oct 26, 2026", item: "Part A4", tipe: "Match", status: "Approved", partNumber: "A4", partName: "Spring", totalItem: "100 pcs", totalBox: "5 box", totalWeight: "100 gr" },
-];
-
 export default function VendorHistory() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showCalendar, setShowCalendar] = useState(false);
   const [detailItem, setDetailItem] = useState<Shipment | null>(null);
   const [photoItem, setPhotoItem] = useState<Shipment | null>(null);
+
+  const { user } = useAuth();
+  const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      if (!user?.vendor_id) return;
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/manifests?vendor_id=${user.vendor_id}`);
+        if (res.ok) {
+          const manifestsData = await res.json();
+          const flattenedShipments: Shipment[] = [];
+
+          manifestsData.forEach((m: any) => {
+            if (m.manifest_items) {
+              m.manifest_items.forEach((item: any) => {
+                // Check if there is a discrepancy for this item
+                const disc = m.discrepancies?.find((d: any) => d.part_id === item.part_id);
+
+                flattenedShipments.push({
+                  id: m.manifest_number,
+                  date: new Date(m.created_at).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' }),
+                  item: item.parts?.part_number || "Unknown",
+                  tipe: disc ? "Mismatch" : "Match",
+                  status: disc ? (disc.resolution_status || "Pending") : m.status,
+                  partNumber: item.parts?.part_number || "-",
+                  partName: item.parts?.part_name || "-",
+                  totalItem: `${item.expected_qty} pcs`,
+                  totalBox: `${item.expected_boxes || 0} box`,
+                  totalWeight: "-", // Weight is not available in DB right now
+                });
+              });
+            }
+          });
+
+          setShipments(flattenedShipments);
+        }
+      } catch (error) {
+        console.error("Failed to fetch history:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHistory();
+  }, [user]);
 
   const formatDate = (date: Date) => {
     const d = date.getDate().toString().padStart(2, "0");
@@ -80,29 +122,44 @@ export default function VendorHistory() {
                 </tr>
               </thead>
               <tbody>
-                {shipments.map((s, i) => (
-                  <tr key={i} className="border-b border-gray-100">
-                    <td className="text-center py-3 text-gray-600 px-2">{s.id}</td>
-                    <td className="text-center py-3 text-gray-600 px-2">{s.date}</td>
-                    <td className="text-center py-3 text-gray-600 px-2">{s.item}</td>
-                    <td className="text-center py-3 px-2">
-                      <span className="border border-gray-300 text-gray-600 text-xs px-3 py-1 rounded-full">{s.tipe}</span>
-                    </td>
-                    <td className="text-center py-3 px-2">
-                      <span className={`text-white text-xs px-3 py-1 rounded-full ${s.status === "Approved" ? "bg-green-500" : "bg-red-500"}`}>{s.status}</span>
-                    </td>
-                    <td className="text-center py-3 px-2">
-                      <button onClick={() => setPhotoItem(s)} className="bg-blue-400 hover:bg-blue-500 text-white text-xs px-3 py-1 rounded-full">
-                        Photo
-                      </button>
-                    </td>
-                    <td className="text-center py-3 px-2">
-                      <button onClick={() => setDetailItem(s)} className="bg-pink-300 hover:bg-pink-400 text-white text-xs px-3 py-1 rounded-full">
-                        Details
-                      </button>
-                    </td>
+                {loading ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-8 text-gray-500">Loading history...</td>
                   </tr>
-                ))}
+                ) : shipments.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-8 text-gray-500">No shipment history found.</td>
+                  </tr>
+                ) : (
+                  shipments.map((s, i) => (
+                    <tr key={i} className="border-b border-gray-100">
+                      <td className="text-center py-3 text-gray-600 px-2">{s.id}</td>
+                      <td className="text-center py-3 text-gray-600 px-2">{s.date}</td>
+                      <td className="text-center py-3 text-gray-600 px-2">{s.item}</td>
+                      <td className="text-center py-3 px-2">
+                        <span className="border border-gray-300 text-gray-600 text-xs px-3 py-1 rounded-full">{s.tipe}</span>
+                      </td>
+                      <td className="text-center py-3 px-2">
+                        <span className={`text-white text-xs px-3 py-1 rounded-full ${s.status === 'DRAFT' ? 'bg-gray-400' :
+                          s.status === 'LOCKED' ? 'bg-orange-500' :
+                            s.status === 'CHECKING' ? 'bg-blue-500' :
+                              s.status === 'COMPLETED' ? 'bg-green-500' :
+                                s.status === 'DISCREPANCY' ? 'bg-red-500' :
+                                  'bg-red-500'}`}>{s.status}</span>
+                      </td>
+                      <td className="text-center py-3 px-2">
+                        <button onClick={() => setPhotoItem(s)} className="text-blue-500 hover:text-blue-600 hover:underline text-xs px-3 py-1 font-medium">
+                          Photo
+                        </button>
+                      </td>
+                      <td className="text-center py-3 px-2">
+                        <button onClick={() => setDetailItem(s)} className="text-pink-500 hover:text-pink-600 hover:underline text-xs px-3 py-1 font-medium">
+                          Details
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -122,7 +179,7 @@ export default function VendorHistory() {
               </button>
             </div>
             <div className="flex gap-2 mb-5">
-              <span className={`text-white text-xs px-4 py-1.5 rounded-full ${detailItem.status === "Approved" ? "bg-green-500" : "bg-red-500"}`}>{detailItem.status}</span>
+              <span className={`text-white text-xs px-4 py-1.5 rounded-full ${detailItem.status === "Approved" || detailItem.status === "COMPLETED" ? "bg-green-500" : detailItem.status === "Pending" ? "bg-orange-400" : "bg-blue-500"}`}>{detailItem.status}</span>
               <span className="border border-gray-300 text-gray-600 text-xs px-4 py-1.5 rounded-full">{detailItem.tipe}</span>
             </div>
             <div className="flex flex-col gap-2 text-sm text-gray-700">

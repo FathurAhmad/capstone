@@ -5,7 +5,7 @@ import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/app/context/authContext";
-import router from "next/router";
+import { useParams, useRouter } from "next/navigation";
 
 type Part = {
   id: string;
@@ -14,7 +14,6 @@ type Part = {
   unit: string;
 };
 
-// Update tipe data row untuk mencocokkan field dari API
 type ManifestRowUpdated = {
   id: number;
   part_id: string;
@@ -23,41 +22,72 @@ type ManifestRowUpdated = {
   batch_code: string;
 };
 
-export default function NewShipment() {
-  const [shipmentId, setShipmentId] = useState("");
+export default function EditShipment() {
+  const { id } = useParams();
+  const router = useRouter();
+  const { user } = useAuth();
+
   const [driverName, setDriverName] = useState("");
   const [vehiclePlate, setVehiclePlate] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showCalendar, setShowCalendar] = useState(false);
 
-  // State untuk menyimpan daftar parts dari API
   const [partsList, setPartsList] = useState<Part[]>([]);
-
-  const [rows, setRows] = useState<ManifestRowUpdated[]>([
-    { id: 1, part_id: "", qty: "", totalPackages: "", batch_code: "" }
-  ]);
-
-  // TODO: Uncomment to get vendor_id if you are using auth context
-  const { user } = useAuth();
+  const [rows, setRows] = useState<ManifestRowUpdated[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Ambil data parts saat komponen pertama kali di-mount
     const fetchParts = async () => {
       try {
         const res = await fetch('/api/parts');
         if (res.ok) {
           const data = await res.json();
           setPartsList(data);
-        } else {
-          console.error("Gagal mengambil data parts");
         }
       } catch (error) {
         console.error("Error fetching parts:", error);
       }
     };
-
     fetchParts();
   }, []);
+
+  useEffect(() => {
+    if (!id) return;
+    const fetchManifest = async () => {
+      try {
+        const res = await fetch(`/api/manifests/${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setDriverName(data.driver_name || "");
+          setVehiclePlate(data.vehicle_plate || "");
+          if (data.estimated_arrival) {
+            setSelectedDate(new Date(data.estimated_arrival));
+          }
+          
+          if (data.manifest_items && data.manifest_items.length > 0) {
+            const mappedRows = data.manifest_items.map((item: any, index: number) => ({
+              id: index + 1,
+              part_id: item.part_id,
+              qty: item.expected_qty.toString(),
+              totalPackages: item.expected_boxes.toString(),
+              batch_code: item.batch_code || ""
+            }));
+            setRows(mappedRows);
+          } else {
+            setRows([{ id: 1, part_id: "", qty: "", totalPackages: "", batch_code: "" }]);
+          }
+        } else {
+          alert("Gagal mengambil data manifest");
+          router.push("/vendor/dashboard");
+        }
+      } catch (error) {
+        console.error("Error fetching manifest:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchManifest();
+  }, [id, router]);
 
   const formatDate = (date: Date) => {
     const d = date.getDate().toString().padStart(2, "0");
@@ -70,19 +100,18 @@ export default function NewShipment() {
     setRows([...rows, { id: rows.length + 1, part_id: "", qty: "", totalPackages: "", batch_code: "" }]);
   };
 
-  const deleteRow = (id: number) => {
+  const deleteRow = (rowId: number) => {
     if (rows.length === 1) return;
-    setRows(rows.filter((r) => r.id !== id));
+    setRows(rows.filter((r) => r.id !== rowId));
   };
 
-  const updateRow = (id: number, field: keyof ManifestRowUpdated, value: string) => {
-    setRows(rows.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
+  const updateRow = (rowId: number, field: keyof ManifestRowUpdated, value: string) => {
+    setRows(rows.map((r) => (r.id === rowId ? { ...r, [field]: value } : r)));
   };
 
-  const handleDraft = async () => {
+  const handleSave = async () => {
     try {
       const payload = {
-        // Gunakan user?.id jika ada, jika tidak fallback ke ID test
         vendor_id: user?.vendor_id,
         driver_name: driverName,
         vehicle_plate: vehiclePlate,
@@ -91,67 +120,37 @@ export default function NewShipment() {
           part_id: row.part_id,
           expected_qty: parseInt(row.qty) || 0,
           expected_boxes: parseInt(row.totalPackages) || 0,
-          batch_code: row.batch_code, // Sesuai payload test dari user
+          batch_code: row.batch_code,
         }))
       };
 
-      const res = await fetch('/api/manifests/draft', {
-        method: 'POST',
+      const res = await fetch(`/api/manifests/${id}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
       const data = await res.json();
       if (res.ok) {
-        alert("Manifest berhasil disimpan!");
-      } else {
-        alert(data.error || "Terjadi kesalahan saat menyimpan manifest");
-      }
-    } catch (error) {
-      console.error("Error submitting manifest:", error);
-      alert("Terjadi kesalahan pada server");
-    }
-  }
-
-  const handleSubmit = async () => {
-    try {
-      const payload = {
-        // Gunakan user?.id jika ada, jika tidak fallback ke ID test
-        vendor_id: user?.vendor_id,
-        driver_name: driverName,
-        vehicle_plate: vehiclePlate,
-        estimated_arrival: selectedDate.toISOString(),
-        items: rows.map(row => ({
-          part_id: row.part_id,
-          expected_qty: parseInt(row.qty) || 0,
-          expected_boxes: parseInt(row.totalPackages) || 0,
-          batch_code: row.batch_code, // Sesuai payload test dari user
-        }))
-      };
-
-      const res = await fetch('/api/manifests/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        alert("Manifest berhasil disimpan!");
+        alert("Perubahan berhasil disimpan!");
         router.push("/vendor/dashboard");
       } else {
-        alert(data.error || "Terjadi kesalahan saat menyimpan manifest");
+        alert(data.error || "Terjadi kesalahan saat menyimpan perubahan");
       }
     } catch (error) {
-      console.error("Error submitting manifest:", error);
+      console.error("Error saving manifest:", error);
       alert("Terjadi kesalahan pada server");
     }
   };
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center bg-[#f0f4f8]">Loading...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-[#f0f4f8]">
       <div className="px-4 md:px-8 py-4 md:py-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">New Shipment</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">Edit Shipment</h1>
 
         <div className="bg-white rounded-xl p-4 md:p-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -207,8 +206,8 @@ export default function NewShipment() {
                   <th className="text-left px-3 md:px-4 py-3 font-semibold text-gray-700 w-10">No</th>
                   <th className="text-left px-3 md:px-4 py-3 font-semibold text-gray-700 w-48">Part Name</th>
                   <th className="text-left px-3 md:px-4 py-3 font-semibold text-gray-700 w-48">Part Number</th>
-                  <th className="text-left px-3 md:px-4 py-3 font-semibold text-gray-700">Package Qty</th>
-                  <th className="text-left px-3 md:px-4 py-3 font-semibold text-gray-700">Total Boxes</th>
+                  <th className="text-left px-3 md:px-4 py-3 font-semibold text-gray-700">Qty per pkg</th>
+                  <th className="text-left px-3 md:px-4 py-3 font-semibold text-gray-700">Total Packages</th>
                   <th className="text-left px-3 md:px-4 py-3 font-semibold text-gray-700">Batch Code</th>
                   <th className="text-left px-3 md:px-4 py-3 font-semibold text-gray-700">Action</th>
                 </tr>
@@ -235,7 +234,6 @@ export default function NewShipment() {
                         </select>
                       </td>
                       <td className="px-2 py-3">
-                        {/* Part Name otomatis terisi berdasarkan Part Number yang dipilih */}
                         <div className="w-full border border-gray-100 bg-gray-50 rounded-lg px-2 py-1.5 text-sm text-gray-500 min-h-[34px] flex items-center">
                           {selectedPart ? selectedPart.part_number : "Select a part..."}
                         </div>
@@ -288,11 +286,11 @@ export default function NewShipment() {
               + Add Column
             </button>
             <div className="flex gap-2">
-              <button onClick={handleDraft} className="border-2 border-[#1a3a7c] text-[#1a3a7c] font-semibold px-6 py-2.5 rounded-lg hover:bg-blue-50 text-sm w-full sm:w-auto">
-                Save As Draft
+              <button onClick={() => router.push("/vendor/dashboard")} className="border-2 border-gray-300 text-gray-600 font-semibold px-6 py-2.5 rounded-lg hover:bg-gray-50 text-sm w-full sm:w-auto">
+                Cancel
               </button>
-              <button onClick={handleSubmit} className="bg-[#1a3a7c] text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-[#152f66] text-sm w-full sm:w-auto">
-                Submit & Generate QR Labels
+              <button onClick={handleSave} className="bg-[#1a3a7c] text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-[#152f66] text-sm w-full sm:w-auto">
+                Save Changes
               </button>
             </div>
           </div>
