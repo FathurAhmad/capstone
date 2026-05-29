@@ -16,7 +16,6 @@ export async function POST(request: Request) {
           update: {}, 
           create: {
             id: log.id,
-            manifest_id: log.manifest_id,
             part_id: log.part_id,
             actual_qty: log.actual_qty,
             scanned_at: new Date(log.scanned_at),
@@ -24,12 +23,10 @@ export async function POST(request: Request) {
         });
 
         // 2. Ambil data ekspektasi dari manifest_items
-        const manifestItem = await tx.manifest_items.findUnique({
+        const manifestItem = await tx.manifest_items.findFirst({
           where: {
-            manifest_id_part_id: {
-              manifest_id: log.manifest_id,
-              part_id: log.part_id,
-            },
+            manifest_id: log.manifest_id,
+            part_id: log.part_id,
           },
         });
 
@@ -37,19 +34,8 @@ export async function POST(request: Request) {
         if (manifestItem && log.actual_qty !== manifestItem.expected_qty) {
           const variance = log.actual_qty - manifestItem.expected_qty;
           
-          await tx.discrepancies.upsert({
-            where: { 
-              manifest_id_part_id: { 
-                manifest_id: log.manifest_id, 
-                part_id: log.part_id 
-              } 
-            },
-            update: {
-              actual_qty: log.actual_qty,
-              variance: variance,
-              updated_at: new Date(),
-            },
-            create: {
+          await tx.discrepancies.create({
+            data: {
               manifest_id: log.manifest_id,
               part_id: log.part_id,
               expected_qty: manifestItem.expected_qty,
