@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 import { getDB } from "@/lib/idb";
+import { useAuth } from "@/app/context/authContext";
 
 export default function ManifestPreparationPage() {
   const params = useParams();
   const id = params.id as string;
   const router = useRouter();
+  const { user } = useAuth();
   
   const [manifest, setManifest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -40,7 +42,30 @@ export default function ManifestPreparationPage() {
       const db = await getDB();
       if (!db) throw new Error("IndexedDB tidak didukung");
       
-      const sessionId = uuidv4();
+      let sessionId = uuidv4();
+      
+      // Panggil API untuk ubah status ke CHECKING dan buat sesi di server
+      try {
+        const res = await fetch('/api/inbounds/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            manifest_number: manifest.manifest_number,
+            user_id: user?.id || null
+          })
+        });
+        
+        if (res.ok) {
+          const apiResponse = await res.json();
+          if (apiResponse.data?.id) {
+            sessionId = apiResponse.data.id;
+          }
+        } else {
+          console.warn("Gagal mengubah status di server. Lanjut mode offline.");
+        }
+      } catch (apiError) {
+        console.warn("Sedang offline. Lanjut menggunakan UUID lokal.", apiError);
+      }
       
       // Simpan Manifest ke IDB
       await db.put('manifests', {
