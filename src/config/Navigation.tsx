@@ -80,12 +80,12 @@ export const NAV_ITEMS: NavItem[] = [
     allowedRoles: ['staff'],
     icon: DashboardIcon // Panggil nama komponennya di sini
   },
-  // {
-  //   label: 'Logistik Tracking',
-  //   href: '/petugas/logistic-tracking',
-  //   allowedRoles: ['staff'],
-  //   icon: LogisticTrackingIcon // Panggil nama komponennya di sini
-  // },
+  {
+    label: 'Logistik Tracking',
+    href: '/petugas/logistic-tracking',
+    allowedRoles: ['staff'],
+    icon: LogisticTrackingIcon // Panggil nama komponennya di sini
+  },
   {
     label: 'History',
     href: '/petugas/history',

@@ -17,6 +17,7 @@ export async function GET(request: Request, { params }: RouteParams) {
             parts: true
           }
         },
+        vendors: true
       },
     });
 
