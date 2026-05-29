@@ -14,7 +14,6 @@ export async function POST(request: Request, { params }: RouteParams) {
         staff_signature_url: staffSignatureUrl,
         completed_at: new Date(),
         status: "COMPLETED",
-        status: "COMPLETED",
       },
     });
 
