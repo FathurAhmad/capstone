@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         message: "Login berhasil",
-        session: authData.session, // Mengandungi access_token dan refresh_token
+        session: authData.session, // Menyimpan access token dan refresh token
         user: {
           id: authData.user.id,
           email: authData.user.email,
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Ralat log masuk:", error);
     return NextResponse.json(
-      { error: "Ralat dalaman pelayan (Internal server error)" },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
