@@ -12,7 +12,11 @@ export async function GET(request: Request, { params }: RouteParams) {
         id: id,
       },
       include: {
-        manifest_items: true,
+        manifest_items: {
+          include: {
+            parts: true
+          }
+        },
         vendors: true
       },
     });
