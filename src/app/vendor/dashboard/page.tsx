@@ -27,12 +27,6 @@ const barData = [
   { name: "Epson D3", delivered: 155, expected: 125 },
 ];
 
-const exceptions = [
-  { id: "ID#1234", date: "Oct 26, 2026", items: "Part A1", status: "Review" },
-  { id: "ID#1234", date: "Oct 26, 2026", items: "Part A1", status: "Review" },
-  { id: "ID#1234", date: "Oct 26, 2026", items: "Part A1", status: "Review" },
-];
-
 export default function VendorDashboard() {
   const [search, setSearch] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -207,11 +201,11 @@ export default function VendorDashboard() {
                       <td className="py-3 text-gray-600">{manifest.manifest_items?.length || 0} items</td>
                       <td className="py-3">
                         <span className={`text-xs px-3 py-1 rounded-full text-white ${manifest.status === 'DRAFT' ? 'bg-gray-400' :
-                            manifest.status === 'LOCKED' ? 'bg-orange-500' :
-                              manifest.status === 'CHECKING' ? 'bg-blue-500' :
-                                manifest.status === 'COMPLETED' ? 'bg-green-500' :
-                                  manifest.status === 'DISCREPANCY' ? 'bg-red-500' :
-                                    'bg-red-500'
+                          manifest.status === 'LOCKED' ? 'bg-orange-500' :
+                            manifest.status === 'CHECKING' ? 'bg-blue-500' :
+                              manifest.status === 'COMPLETED' ? 'bg-green-500' :
+                                manifest.status === 'DISCREPANCY' ? 'bg-red-500' :
+                                  'bg-red-500'
                           }`}>
                           {manifest.status}
                         </span>

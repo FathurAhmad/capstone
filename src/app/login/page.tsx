@@ -100,32 +100,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Select Role
-          <div className="relative">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Select Role</label>
-            <button onClick={() => setDropdownOpen(!dropdownOpen)} className="w-full flex items-center justify-between border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
-              <span className={role ? "text-gray-700" : "text-gray-400"}>{role || "Role"}</span>
-              <span>▾</span>
-            </button>
-
-            {dropdownOpen && (
-              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
-                {roles.map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => {
-                      setRole(r);
-                      setDropdownOpen(false);
-                    }}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    {r}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div> */}
-
           {/* Error Message */}
           {error && <p className="text-red-500 text-sm -mt-2">{error}</p>}
 
