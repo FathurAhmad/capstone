@@ -13,6 +13,7 @@ export async function GET(request: Request, { params }: RouteParams) {
       },
       include: {
         manifest_items: true,
+        vendors: true
       },
     });
 
