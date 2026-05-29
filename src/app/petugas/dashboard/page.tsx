@@ -1,17 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-
-const pendingDecisions = [
-  { id: "Shipment ID", date: "Oct 26, 2026", vendor: "Vendor A", items: "Part A1", status: "Mismatch" },
-  { id: "Shipment ID", date: "Oct 26, 2026", vendor: "Vendor A", items: "Part A1", status: "Mismatch" },
-  { id: "Shipment ID", date: "Oct 26, 2026", vendor: "Vendor A", items: "Part A1", status: "Mismatch" },
-];
-
-const avatarColors = ["#60a5fa", "#f472b6", "#34d399", "#a78bfa", "#fb923c"];
+import Link from "next/link";
 
 function Avatar({ name, index }: { name: string; index: number }) {
   return (
@@ -25,6 +18,29 @@ export default function PetugasDashboard() {
   const [search, setSearch] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showCalendar, setShowCalendar] = useState(false);
+  
+  const [manifests, setManifests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchManifests = async () => {
+      try {
+        // Ambil semua manifest
+        const res = await fetch("/api/manifests");
+        const data = await res.json();
+        
+        // Filter hanya manifes yang BUKAN DRAFT
+        const pending = data.filter((m: any) => m.status !== 'DRAFT');
+        setManifests(pending);
+      } catch (error) {
+        console.error("Failed to fetch manifests", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchManifests();
+  }, []);
 
   const formatDate = (date: Date) => {
     const d = date.getDate().toString().padStart(2, "0");
@@ -69,41 +85,69 @@ export default function PetugasDashboard() {
           </div>
         </div>
         {/* PENDING DECISIONS TABLE */}
-        <div className="bg-white rounded-xl p-6">
-          <p className="font-semibold text-gray-800 mb-4">Pending Decisions</p>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100">
-                <th className="text-left py-2 font-normal text-gray-400">Shipment ID</th>
-                <th className="text-left py-2 font-normal text-gray-400">Date</th>
-                <th className="text-left py-2 font-normal text-gray-400">Vendor</th>
-                <th className="text-left py-2 font-normal text-gray-400">Items</th>
-                <th className="text-left py-2 font-normal text-gray-400">Status</th>
-                <th className="text-left py-2 font-normal text-gray-400">Action Buttons</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pendingDecisions.map((item, i) => (
-                <tr key={i} className="border-b border-gray-50">
-                  <td className="py-3 text-gray-600">{item.id}</td>
-                  <td className="py-3 text-gray-600">{item.date}</td>
-                  <td className="py-3 text-gray-600">{item.vendor}</td>
-                  <td className="py-3 text-gray-600">{item.items}</td>
-                  <td className="py-3">
-                    <span className="bg-red-500 text-white text-xs px-3 py-1 rounded-full">{item.status}</span>
-                  </td>
-                  <td className="py-3">
-                    <div className="flex items-center gap-2">
-                      <button className="bg-green-500 hover:bg-green-600 text-white text-xs px-4 py-1.5 rounded-lg font-medium">Approve</button>
-                      <a href="/petugas/review" className="border border-gray-300 text-gray-600 text-xs px-4 py-1.5 rounded-lg hover:bg-gray-50 font-medium">
-                        Review
-                      </a>{" "}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <p className="font-semibold text-gray-800 mb-4">Tugas Pengecekan Menunggu</p>
+          
+          {loading ? (
+            <div className="text-center py-10 text-gray-500">Memuat data...</div>
+          ) : manifests.length === 0 ? (
+            <div className="text-center py-10 text-gray-500">Tidak ada tugas pengecekan saat ini.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100">
+                    <th className="text-left py-2 font-normal text-gray-400">ID Manifes</th>
+                    <th className="text-left py-2 font-normal text-gray-400">Tanggal</th>
+                    <th className="text-left py-2 font-normal text-gray-400">Vendor</th>
+                    <th className="text-left py-2 font-normal text-gray-400">Total Item</th>
+                    <th className="text-left py-2 font-normal text-gray-400">Status</th>
+                    <th className="text-left py-2 font-normal text-gray-400">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {manifests.map((m: any) => (
+                    <tr key={m.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                      <td className="py-4 text-gray-900 font-medium">{m.manifest_number}</td>
+                      <td className="py-4 text-gray-600">
+                        {new Date(m.created_at).toLocaleDateString("id-ID", {
+                          day: "numeric", month: "short", year: "numeric"
+                        })}
+                      </td>
+                      <td className="py-4 text-gray-600">{m.vendors?.name || "-"}</td>
+                      <td className="py-4 text-gray-600">{m.manifest_items?.length || 0} Barang</td>
+                      <td className="py-4">
+                        <span className="bg-blue-50 text-blue-600 text-xs px-3 py-1.5 rounded-full font-semibold tracking-wide">
+                          {m.status}
+                        </span>
+                      </td>
+                      <td className="py-4">
+                        {m.status === 'LOCKED' ? (
+                          <Link 
+                            href={`/petugas/manifest/${m.id}`}
+                            className="bg-[#1a3a7c] hover:bg-[#122859] text-white text-xs px-5 py-2 rounded-lg font-bold shadow-sm transition-colors inline-block"
+                          >
+                            Mulai Cek
+                          </Link>
+                        ) : m.status === 'CHECKING' ? (
+                          <Link 
+                            href={`/petugas/manifest/${m.id}`}
+                            className="bg-orange-500 hover:bg-orange-600 text-white text-xs px-5 py-2 rounded-lg font-bold shadow-sm transition-colors inline-block"
+                          >
+                            Lanjut Cek
+                          </Link>
+                        ) : (
+                          <span className="bg-gray-100 text-gray-500 text-xs px-5 py-2 rounded-lg font-bold shadow-sm inline-block">
+                            Selesai
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </div>

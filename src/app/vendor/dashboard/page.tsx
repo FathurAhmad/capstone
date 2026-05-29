@@ -43,7 +43,7 @@ export default function VendorDashboard() {
     if (!user?.vendor_id) return;
     try {
       setLoadingManifests(true);
-      const res = await fetch(`/api/manifests?vendor_id=${user.vendor_id}&status=DRAFT`);
+      const res = await fetch(`/api/manifests?vendor_id=${user.vendor_id}`);
       if (res.ok) {
         const data = await res.json();
         setManifests(data);
