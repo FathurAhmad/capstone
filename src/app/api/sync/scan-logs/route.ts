@@ -77,9 +77,15 @@ export async function POST(request: Request) {
     // 3. Simpan data menggunakan Prisma Transaction
     const result = await prisma.$transaction(async (tx) => {
       
-      // Buat Sesi Inbound
-      const inboundSession = await tx.inbound_sessions.create({
-        data: {
+      // Buat atau Update Sesi Inbound
+      const inboundSession = await tx.inbound_sessions.upsert({
+        where: { id: session_id },
+        update: {
+          completed_at: new Date(),
+          driver_signature_url: driverSigUrl,
+          staff_signature_url: staffSigUrl,
+        },
+        create: {
           id: session_id,
           manifest_id: manifest_id,
           completed_at: new Date(),
