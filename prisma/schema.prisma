@@ -38,7 +38,6 @@ model discrepancies {
   parts             parts?     @relation(fields: [part_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   profiles          profiles?  @relation(fields: [resolved_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@unique([manifest_id, part_id])
   @@schema("public")
 }
 
@@ -52,6 +51,7 @@ model inbound_sessions {
   driver_signature_url String?
   staff_signature_url  String?
   created_by           String?     @db.Uuid
+  status               String?     @default("IN_PROGRESS") @db.VarChar(50)
   profiles             profiles?   @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   manifests            manifests?  @relation(fields: [manifest_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   scan_logs            scan_logs[]
@@ -71,7 +71,6 @@ model manifest_items {
   parts          parts?     @relation(fields: [part_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   qr_codes       qr_codes[]
 
-  @@unique([manifest_id, part_id])
   @@schema("public")
 }
 
