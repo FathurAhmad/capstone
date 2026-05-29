@@ -50,7 +50,7 @@ export async function POST(request: Request) {
         })
 
         return NextResponse.json(
-            { message: 'Sesi inbound dibuka'},
+            { message: 'Sesi inbound dibuka', data: result },
             { status: 201 }
         )
     } catch (error) {
