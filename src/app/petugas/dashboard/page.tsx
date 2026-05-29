@@ -5,32 +5,6 @@ import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
-const barData = [
-  { vendor: "Vendor A", scanned: 100, expected: 100 },
-  { vendor: "Vendor B", scanned: 15, expected: 25 },
-  { vendor: "Vendor C", scanned: 10, expected: 10 },
-];
-
-const vendorRanking = [
-  { name: "Vendor A (IEI Approved)", value: 99, color: "#22c55e", label: "IEI Green" },
-  { name: "Vendor B (IEI Gold)", value: 98, color: "#22c55e", label: "IEI Green" },
-  { name: "Vendor C", value: 91, color: "#eab308", label: "IEI Yellow" },
-  { name: "Vendor D", value: 88, color: "#eab308", label: "IEI Yellow" },
-  { name: "Vendor E", value: 86, color: "#eab308", label: "IEI Yellow" },
-  { name: "Vendor F (IEI Priority)", value: 79, color: "#ef4444", label: "IEI Red" },
-  { name: "Vendor G (IEI Alert)", value: 75, color: "#ef4444", label: "IEI Red Alert" },
-];
-
-const liveFeed = ["ID#1234 (Part A1, 10 units) Scanned from Vendor B", "ID#1234 (Part A1, 10 units) Scanned from Vendor B", "ID#1234 (Part A1, 10 units) Scanned from Vendor B"];
-
-const teamActivity = [
-  { name: "Andi", action: "Scanned 15 boxes", time: "10 mins ago" },
-  { name: "Siti", action: "Scanned 10 boxes", time: "35 mins ago" },
-  { name: "Budi", action: "Logged Discrepancy", time: "50 mins ago" },
-  { name: "Andi", action: "Scanned 15 boxes", time: "10 mins ago" },
-  { name: "Siti", action: "Scanned 10 boxes", time: "35 mins ago" },
-];
-
 const pendingDecisions = [
   { id: "Shipment ID", date: "Oct 26, 2026", vendor: "Vendor A", items: "Part A1", status: "Mismatch" },
   { id: "Shipment ID", date: "Oct 26, 2026", vendor: "Vendor A", items: "Part A1", status: "Mismatch" },
