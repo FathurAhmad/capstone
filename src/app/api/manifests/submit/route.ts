@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { ManifestStatus } from '@prisma/client';
 import { NextResponse } from 'next/server';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(request: Request) {
   try {
@@ -71,6 +72,11 @@ export async function POST(request: Request) {
             expected_qty: item.expected_qty,
             expected_boxes: item.expected_boxes,
             batch_code: item.batch_code, //diisi manual oleh petugas karena harus melihat kode produksi pada barang
+            qr_codes: {
+              create: [
+                { qr_payload: uuidv4() } // Auto-generate QR Payload unik
+              ]
+            }
           }))
         }
       },

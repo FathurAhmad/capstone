@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { v4 as uuidv4 } from "uuid";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -14,7 +15,8 @@ export async function GET(request: Request, { params }: RouteParams) {
       include: {
         manifest_items: {
           include: {
-            parts: true
+            parts: true,
+            qr_codes: true
           }
         },
         vendors: true
@@ -74,21 +76,30 @@ export async function PATCH(request: Request, { params }: RouteParams) {
           where: { manifest_id: id },
         });
 
-        // Jika datanya ada, maka akan diambil beberapa atribut untuk kemudian di re-assign sehingga manifests terupdate
+        // Jika datanya ada, maka akan dibuatkan per baris agar bisa support nested create untuk qr_codes
         if (items.length > 0) {
-          await tx.manifest_items.createMany({
-            data: items.map((item: any) => ({
-              manifest_number: item.manifest_number,
-              vendor_id: item.vendor_id,
-              part_id: item.part_id,
-              expected_boxes: item.expected_boxes,
-              batch_code: item.batch_code,
-              manifest_id: id,
-              expected_qty: item.expected_qty,
-              vendor_part_id: item.vendor_part_id,
-              quantity: item.quantity,
-            })),
-          });
+          await Promise.all(
+            items.map((item: any) =>
+              tx.manifest_items.create({
+                data: {
+                  manifest_number: item.manifest_number,
+                  vendor_id: item.vendor_id,
+                  part_id: item.part_id,
+                  expected_boxes: item.expected_boxes,
+                  batch_code: item.batch_code,
+                  manifest_id: id,
+                  expected_qty: item.expected_qty,
+                  vendor_part_id: item.vendor_part_id,
+                  quantity: item.quantity,
+                  qr_codes: {
+                    create: [
+                      { qr_payload: uuidv4() }
+                    ]
+                  }
+                }
+              })
+            )
+          );
         }
       }
 
