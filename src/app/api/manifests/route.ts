@@ -3,13 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { ManifestStatus } from "@prisma/client";
 
 export async function GET(request: Request) {
+
     try {
         const { searchParams } = new URL(request.url);
-        const vendor_id = searchParams.get('vendor_id');
-
+        const manifestStatus = searchParams.get('status');
         const manifests = await prisma.manifests.findMany({
-            where: vendor_id ? { vendor_id } : undefined,
-            orderBy: { created_at: 'desc' }, // Lebih baik diurutkan berdasarkan terbaru
+            where: { status: manifestStatus as ManifestStatus },
+            orderBy: { manifest_number: 'asc'},
             include: {
                 manifest_items: {
                     include: {
