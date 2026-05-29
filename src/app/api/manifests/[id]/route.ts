@@ -82,15 +82,11 @@ export async function PATCH(request: Request, { params }: RouteParams) {
             items.map((item: any) =>
               tx.manifest_items.create({
                 data: {
-                  manifest_number: item.manifest_number,
-                  vendor_id: item.vendor_id,
+                  manifest_id: id,
                   part_id: item.part_id,
+                  expected_qty: item.expected_qty,
                   expected_boxes: item.expected_boxes,
                   batch_code: item.batch_code,
-                  manifest_id: id,
-                  expected_qty: item.expected_qty,
-                  vendor_part_id: item.vendor_part_id,
-                  quantity: item.quantity,
                   qr_codes: {
                     create: [
                       { qr_payload: uuidv4() }
