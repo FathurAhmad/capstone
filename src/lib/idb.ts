@@ -18,6 +18,7 @@ export interface OfflineManifestItem {
   part_number: string;
   part_name: string;
   expected_qty: number;
+  qr_payload: string;
 }
 
 export interface OfflineScanLog {

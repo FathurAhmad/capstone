@@ -125,21 +125,8 @@ export async function POST(request: Request) {
           const variance = log.actual_qty - log.expected_qty;
           const discrepancyType = variance < 0 ? 'MISSING' : (variance > 0 ? 'OVER' : 'DAMAGED');
           
-          await tx.discrepancies.upsert({
-            where: {
-              manifest_id_part_id: {
-                manifest_id: manifest_id,
-                part_id: log.part_id,
-              }
-            },
-            update: {
-              actual_qty: log.actual_qty,
-              variance: variance,
-              discrepancy_type: discrepancyType,
-              resolution_status: 'PENDING',
-              resolved_at: null, // Reset jika sebelumnya pernah ada
-            },
-            create: {
+          await tx.discrepancies.create({
+            data: {
               manifest_id: manifest_id,
               part_id: log.part_id,
               expected_qty: log.expected_qty,

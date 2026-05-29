@@ -59,8 +59,8 @@ export default function WorkspaceScannerPage() {
 
     if (!manifest) return;
 
-    // Asumsi: QR Code berisi part_number
-    const foundItem = manifest.items.find(item => item.part_number === decodedText || item.part_id === decodedText);
+    // Asumsi: QR Code berisi qr_payload yang unik (di-generate oleh backend)
+    const foundItem = manifest.items.find(item => item.qr_payload === decodedText);
     
     if (foundItem) {
       setScannedItem(foundItem);

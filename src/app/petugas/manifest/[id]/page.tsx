@@ -55,7 +55,8 @@ export default function ManifestPreparationPage() {
           part_id: item.part_id,
           part_number: item.parts?.part_number || "",
           part_name: item.parts?.part_name || "",
-          expected_qty: item.expected_qty
+          expected_qty: item.expected_qty,
+          qr_payload: item.qr_codes?.[0]?.qr_payload || item.parts?.part_number || ""
         })),
         createdAt: Date.now()
       });
