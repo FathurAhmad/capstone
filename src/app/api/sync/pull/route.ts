@@ -55,22 +55,15 @@ export async function POST(request: Request) {
           
           // 3. Jika ada selisih, catat ke tabel discrepancies
           if (variance !== 0) {
-            await tx.discrepancies.upsert({
-              where: { 
-                manifest_id_part_id: { 
-                  manifest_id: log.manifest_id, 
-                  part_id: log.part_id 
-                } 
-              },
-              update: { actual_qty: log.actual_qty, variance: variance },
-              create: {
+            await tx.discrepancies.create({
+              data: {
                 manifest_id: log.manifest_id,
                 part_id: log.part_id,
                 expected_qty: item.expected_qty,
                 actual_qty: log.actual_qty,
                 variance: variance,
                 discrepancy_type: variance < 0 ? "MISSING" : "OVER",
-              },
+              }
             });
           }
         }
