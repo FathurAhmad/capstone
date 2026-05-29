@@ -5,7 +5,7 @@ import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/app/context/authContext";
-import router from "next/router";
+import { useRouter } from "next/navigation";
 
 type Part = {
   id: string;
@@ -29,6 +29,7 @@ export default function NewShipment() {
   const [vehiclePlate, setVehiclePlate] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showCalendar, setShowCalendar] = useState(false);
+  const router = useRouter();
 
   // State untuk menyimpan daftar parts dari API
   const [partsList, setPartsList] = useState<Part[]>([]);

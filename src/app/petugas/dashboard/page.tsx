@@ -8,7 +8,7 @@ import Link from "next/link";
 
 function Avatar({ name, index }: { name: string; index: number }) {
   return (
-    <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ backgroundColor: avatarColors[index % avatarColors.length] }}>
+    <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
       {name[0]}
     </div>
   );

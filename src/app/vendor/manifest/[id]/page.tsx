@@ -133,7 +133,7 @@ export default function ManifestDetails() {
                   
                   {/* QR Code Graphic */}
                   <div className="flex-shrink-0 bg-white p-2 border border-gray-100 rounded-lg shadow-sm">
-                    <QRCodeSVG value={item.id} size={120} level="M" />
+                    <QRCodeSVG value={item.qr_codes?.[0]?.qr_payload || item.id} size={120} level="M" />
                   </div>
                   
                   {/* Item Detail */}
