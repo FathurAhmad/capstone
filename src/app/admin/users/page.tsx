@@ -58,7 +58,7 @@ export default function ManageUsersPage() {
         setUserEmail("");
         setUserRole("vendor");
         setIsModalOpen(false);
-        fetchUsers(); // Refresh data
+        fetchUsers();
       } else {
         const data = await res.json();
         alert(data.error || "Failed to add user");
@@ -67,6 +67,21 @@ export default function ManageUsersPage() {
       alert("Server error");
     } finally {
       setUserLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async (id: string, name: string) => {
+    if (!confirm(`Apakah Anda yakin ingin menghapus user "${name}"?`)) return;
+    try {
+      const res = await fetch(`/api/users/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        fetchUsers();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Gagal menghapus user");
+      }
+    } catch (err) {
+      alert("Server error");
     }
   };
 
@@ -103,6 +118,7 @@ export default function ManageUsersPage() {
                     <th className="px-6 py-4">Email</th>
                     <th className="px-6 py-4">Role</th>
                     <th className="px-6 py-4">Last Updated</th>
+                    <th className="px-6 py-4 w-20 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -121,6 +137,17 @@ export default function ManageUsersPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4">{new Date(u.updated_at).toLocaleDateString()}</td>
+                      <td className="px-6 py-4 text-center">
+                        <button
+                          onClick={() => handleDeleteUser(u.id, u.full_name)}
+                          className="text-red-400 hover:text-red-600 transition-colors p-1"
+                          title="Delete user"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

@@ -57,7 +57,7 @@ export default function ManageVendorsPage() {
         setVendorName("");
         setVendorAddress("");
         setIsModalOpen(false);
-        fetchVendors(); // Refresh data
+        fetchVendors();
       } else {
         const data = await res.json();
         alert(data.error || "Failed to add vendor");
@@ -66,6 +66,21 @@ export default function ManageVendorsPage() {
       alert("Server error");
     } finally {
       setVendorLoading(false);
+    }
+  };
+
+  const handleDeleteVendor = async (id: string, name: string) => {
+    if (!confirm(`Apakah Anda yakin ingin menghapus vendor "${name}"?`)) return;
+    try {
+      const res = await fetch(`/api/vendors/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        fetchVendors();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Gagal menghapus vendor");
+      }
+    } catch (err) {
+      alert("Server error");
     }
   };
 
@@ -101,6 +116,7 @@ export default function ManageVendorsPage() {
                     <th className="px-6 py-4 w-32">Vendor Code</th>
                     <th className="px-6 py-4">Vendor Name</th>
                     <th className="px-6 py-4">Address</th>
+                    <th className="px-6 py-4 w-20 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -113,6 +129,17 @@ export default function ManageVendorsPage() {
                       </td>
                       <td className="px-6 py-4 font-medium text-gray-900">{v.name}</td>
                       <td className="px-6 py-4">{v.address}</td>
+                      <td className="px-6 py-4 text-center">
+                        <button
+                          onClick={() => handleDeleteVendor(v.id, v.name)}
+                          className="text-red-400 hover:text-red-600 transition-colors p-1"
+                          title="Delete vendor"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

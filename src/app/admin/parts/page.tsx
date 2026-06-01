@@ -57,7 +57,7 @@ export default function ManagePartsPage() {
         setPartName("");
         setPartUnit("pcs");
         setIsModalOpen(false);
-        fetchParts(); // Refresh data
+        fetchParts();
       } else {
         const data = await res.json();
         alert(data.error || "Failed to add part");
@@ -66,6 +66,21 @@ export default function ManagePartsPage() {
       alert("Server error");
     } finally {
       setPartLoading(false);
+    }
+  };
+
+  const handleDeletePart = async (id: string, name: string) => {
+    if (!confirm(`Apakah Anda yakin ingin menghapus part "${name}"?`)) return;
+    try {
+      const res = await fetch(`/api/parts/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        fetchParts();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Gagal menghapus part");
+      }
+    } catch (err) {
+      alert("Server error");
     }
   };
 
@@ -101,6 +116,7 @@ export default function ManagePartsPage() {
                     <th className="px-6 py-4 w-40">Part Number</th>
                     <th className="px-6 py-4">Part Name</th>
                     <th className="px-6 py-4 w-24">Unit</th>
+                    <th className="px-6 py-4 w-20 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -113,6 +129,17 @@ export default function ManagePartsPage() {
                       </td>
                       <td className="px-6 py-4 font-medium text-gray-900">{p.part_name}</td>
                       <td className="px-6 py-4">{p.unit}</td>
+                      <td className="px-6 py-4 text-center">
+                        <button
+                          onClick={() => handleDeletePart(p.id, p.part_name)}
+                          className="text-red-400 hover:text-red-600 transition-colors p-1"
+                          title="Delete part"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
