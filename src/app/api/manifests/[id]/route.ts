@@ -16,7 +16,11 @@ export async function GET(request: Request, { params }: RouteParams) {
         manifest_items: {
           include: {
             parts: true,
-            qr_codes: true,
+            qr_codes: true
+          }
+        },
+        inbound_sessions: {
+          include: {
             scan_logs: {
               include: {
                 digital_evidence: true
