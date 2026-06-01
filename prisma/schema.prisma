@@ -111,6 +111,7 @@ model parts {
 
 model profiles {
   id               String             @id @db.Uuid
+  email            String?            @db.VarChar(255)
   full_name        String?            @db.VarChar(255)
   role             String?            @db.VarChar(50)
   vendor_id        String?            @db.Uuid
