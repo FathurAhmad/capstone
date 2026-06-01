@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { error } from "console";
-import { Pinyon_Script } from "next/font/google";
 
-type RouteParams = { params: Promise<{ id: string }>};
+type RouteParams = { params: Promise<{ id: string }> };
 
-export async function POST(request: Request, { params }: RouteParams) {
+export async function GET(request: Request, { params }: RouteParams) {
     try {
         const { id } = await params;
 
@@ -41,5 +39,23 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         );
     } catch (error) {
         return NextResponse.json({ error: 'Invalid server error'}, { status: 500 })
+    }
+}
+
+export async function DELETE(request: Request, { params }: RouteParams) {
+    try {
+        const { id } = await params;
+
+        await prisma.parts.update({
+            where: { id: id },
+            data: {
+                deleted_at: new Date(),
+            }
+        })
+
+        return NextResponse.json({ message: 'Part berhasil dihapus' }, { status: 200 });
+    } catch (error) {
+        console.error('DELETE_PART_ERROR', error);
+        return NextResponse.json({ error: 'Gagal menghapus part' }, { status: 500 });
     }
 }

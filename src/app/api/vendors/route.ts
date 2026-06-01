@@ -5,6 +5,7 @@ import { error } from "console";
 export async function GET() {
     try {
         const vendors = await prisma.vendors.findMany({
+            where: { deleted_at: null },
             orderBy: { name: 'asc' }
         });
 

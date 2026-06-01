@@ -47,6 +47,7 @@ export async function POST(request: Request) {
 export async function GET() {
     try {
         const parts = await prisma.parts.findMany({
+            where: { deleted_at: null },
             orderBy: { part_name: 'asc'}
         })
 
