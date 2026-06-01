@@ -5,25 +5,22 @@ import { useRouter } from "next/navigation";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import { useAuth } from "@/app/context/authContext";
+import ManajemenReviewModal from "@/components/ManajemenReviewModal";
 
 type Shipment = {
   id: string;
+  manifestId: string;
   date: string;
   vendor: string;
-  tipe: string;
-  finalStatus: string;
-  partNumber: string;
-  partName: string;
-  totalItem: string;
-  totalBox: string;
-  totalWeight: string;
+  status: string;
+  totalItems: number;
+  totalExceptions: number;
 };
 
 export default function ManajemenHistory() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showCalendar, setShowCalendar] = useState(false);
-  const [detailItem, setDetailItem] = useState<Shipment | null>(null);
-  const [photoItem, setPhotoItem] = useState<Shipment | null>(null);
+  const [reviewManifestId, setReviewManifestId] = useState<string | null>(null);
 
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,23 +37,18 @@ export default function ManajemenHistory() {
           const flattenedShipments: Shipment[] = [];
 
           manifestsData.forEach((m: any) => {
-            if (m.manifest_items) {
-              m.manifest_items.forEach((item: any) => {
-                const disc = m.discrepancies?.find((d: any) => d.part_id === item.part_id);
-                flattenedShipments.push({
-                  id: m.manifest_number,
-                  date: new Date(m.created_at).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' }),
-                  vendor: m.vendors?.name || m.vendor_id || "-",
-                  tipe: disc ? "Mismatch" : "Match",
-                  finalStatus: disc ? (disc.resolution_status || "Pending") : m.status,
-                  partNumber: item.parts?.part_number || "-",
-                  partName: item.parts?.part_name || "-",
-                  totalItem: `${item.expected_qty} pcs`,
-                  totalBox: `${item.expected_boxes || 0} box`,
-                  totalWeight: "-",
-                });
-              });
-            }
+            const totalItems = m.manifest_items?.reduce((sum: number, item: any) => sum + item.expected_qty, 0) || 0;
+            const totalExceptions = m.discrepancies?.length || 0;
+
+            flattenedShipments.push({
+              id: m.manifest_number,
+              manifestId: m.id,
+              date: new Date(m.created_at).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' }),
+              vendor: m.vendors?.name || m.vendor_id || "-",
+              status: m.status,
+              totalItems,
+              totalExceptions,
+            });
           });
 
           setShipments(flattenedShipments);
@@ -113,9 +105,9 @@ export default function ManajemenHistory() {
                   <th className="text-center py-3 font-semibold text-gray-700 px-3">Shipment ID</th>
                   <th className="text-center py-3 font-semibold text-gray-700 px-3">Date</th>
                   <th className="text-center py-3 font-semibold text-gray-700 px-3">Vendor</th>
-                  <th className="text-center py-3 font-semibold text-gray-700 px-3">Tipe</th>
-                  <th className="text-center py-3 font-semibold text-gray-700 px-3">Final Order Status</th>
-                  <th className="text-center py-3 font-semibold text-gray-700 px-3">Proof of Delivery</th>
+                  <th className="text-center py-3 font-semibold text-gray-700 px-3">Total Items</th>
+                  <th className="text-center py-3 font-semibold text-gray-700 px-3">Exceptions</th>
+                  <th className="text-center py-3 font-semibold text-gray-700 px-3">Status</th>
                   <th className="text-center py-3 font-semibold text-gray-700 px-3">Details</th>
                 </tr>
               </thead>
@@ -134,20 +126,19 @@ export default function ManajemenHistory() {
                       <td className="text-center py-4 text-gray-600 px-3">{s.id}</td>
                       <td className="text-center py-4 text-gray-600 px-3">{s.date}</td>
                       <td className="text-center py-4 text-gray-600 px-3">{s.vendor}</td>
+                      <td className="text-center py-4 text-gray-600 px-3">{s.totalItems} pcs</td>
                       <td className="text-center py-4 px-3">
-                        <span className="border border-gray-300 text-gray-600 text-xs px-4 py-1.5 rounded-full">{s.tipe}</span>
+                        <span className={`text-xs px-3 py-1 font-bold rounded-full border ${s.totalExceptions > 0 ? "border-red-500 text-red-500 bg-red-50" : "border-green-500 text-green-500 bg-green-50"}`}>
+                          {s.totalExceptions} Found
+                        </span>
                       </td>
                       <td className="text-center py-4 px-3">
-                        <span className={`text-white text-xs px-4 py-1.5 rounded-full ${s.finalStatus === "Approved" || s.finalStatus === "COMPLETED" ? "bg-green-500" : s.finalStatus === "Pending" ? "bg-orange-400" : s.finalStatus === "LOCKED" ? "bg-orange-500" : s.finalStatus === "CHECKING" ? "bg-blue-500" : s.finalStatus === "DRAFT" ? "bg-gray-400" : s.finalStatus === "DISCREPANCY" ? "bg-red-500" : "bg-red-500"}`}>{s.finalStatus}</span>
+                        <span className={`text-white text-xs font-bold px-4 py-1.5 rounded-full ${s.status === "Approved" || s.status === "COMPLETED" ? "bg-green-500" : s.status === "Pending" ? "bg-orange-400" : s.status === "LOCKED" ? "bg-orange-500" : s.status === "CHECKING" ? "bg-blue-500" : s.status === "DRAFT" ? "bg-gray-400" : s.status === "DISCREPANCY" ? "bg-red-500" : "bg-red-500"}`}>{s.status}</span>
                       </td>
                       <td className="text-center py-4 px-3">
-                        <button onClick={() => setPhotoItem(s)} className="text-blue-500 hover:text-blue-600 hover:underline text-xs px-3 py-1 font-medium">
-                          Photo
-                        </button>
-                      </td>
-                      <td className="text-center py-4 px-3">
-                        <button onClick={() => setDetailItem(s)} className="text-pink-500 hover:text-pink-600 hover:underline text-xs px-3 py-1 font-medium">
-                          Check Details
+                        <button onClick={() => setReviewManifestId(s.manifestId)} className="bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs px-4 py-2 font-bold rounded-lg transition-colors border border-blue-200 shadow-sm flex items-center justify-center gap-1.5 mx-auto">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                          View Details
                         </button>
                       </td>
                     </tr>
@@ -159,67 +150,11 @@ export default function ManajemenHistory() {
         </div>
       </div>
 
-      {/* MODAL - Detail */}
-      {detailItem && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-[480px] p-6">
-            <div className="flex items-center justify-between mb-4">
-              <p className="font-semibold text-gray-800">Details {detailItem.id}</p>
-              <button onClick={() => setDetailItem(null)} className="text-gray-400 hover:text-gray-600">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="flex gap-2 mb-5">
-              <span className={`text-white text-xs px-4 py-1.5 rounded-full ${detailItem.finalStatus === "Approved" || detailItem.finalStatus === "COMPLETED" ? "bg-green-500" : detailItem.finalStatus === "Pending" ? "bg-orange-400" : detailItem.finalStatus === "LOCKED" ? "bg-orange-500" : detailItem.finalStatus === "CHECKING" ? "bg-blue-500" : detailItem.finalStatus === "DRAFT" ? "bg-gray-400" : detailItem.finalStatus === "DISCREPANCY" ? "bg-red-500" : "bg-red-500"}`}>{detailItem.finalStatus}</span>
-              <span className="border border-gray-300 text-gray-600 text-xs px-4 py-1.5 rounded-full">{detailItem.tipe}</span>
-            </div>
-            <div className="flex flex-col gap-2 text-sm text-gray-700">
-              <p>
-                Part Number: <span className="font-medium">{detailItem.partNumber}</span>
-              </p>
-              <p>
-                Part Name: <span className="font-medium">{detailItem.partName}</span>
-              </p>
-              <p>
-                Total Item: <span className="font-medium">{detailItem.totalItem}</span>
-              </p>
-              <p>
-                Total Box: <span className="font-medium">{detailItem.totalBox}</span>
-              </p>
-              <p>
-                Total Weight: <span className="font-medium">{detailItem.totalWeight}</span>
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL - Photo */}
-      {photoItem && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-[500px] p-4">
-            <div className="flex items-center justify-between mb-3">
-              <p className="font-semibold text-gray-800">Photo {photoItem.id}</p>
-              <button onClick={() => setPhotoItem(null)} className="text-gray-400 hover:text-gray-600">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="bg-black rounded-lg flex items-center justify-center h-64">
-              <svg className="w-20 h-20 text-white opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-            </div>
-          </div>
-        </div>
+      {reviewManifestId && (
+        <ManajemenReviewModal
+          manifestId={reviewManifestId}
+          onClose={() => setReviewManifestId(null)}
+        />
       )}
     </div>
   );

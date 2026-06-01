@@ -117,7 +117,7 @@ export default function PetugasDashboard() {
                       <td className="py-4 text-gray-600">{m.vendors?.name || "-"}</td>
                       <td className="py-4 text-gray-600">{m.manifest_items?.length || 0} Barang</td>
                       <td className="py-4">
-                        <span className="bg-blue-50 text-blue-600 text-xs px-3 py-1.5 rounded-full font-semibold tracking-wide">
+                        <span className={`text-white text-xs px-4 py-1.5 rounded-full font-bold shadow-sm ${m.status === "Approved" || m.status === "COMPLETED" ? "bg-green-500" : m.status === "Pending" ? "bg-orange-400" : m.status === "LOCKED" ? "bg-orange-500" : m.status === "CHECKING" ? "bg-blue-500" : m.status === "DRAFT" ? "bg-gray-400" : m.status === "DISCREPANCY" ? "bg-red-500" : "bg-red-500"}`}>
                           {m.status}
                         </span>
                       </td>

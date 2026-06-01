@@ -77,10 +77,10 @@ export default function LoginPage() {
   return (
     <section className="flex min-h-screen w-full">
       {/* KIRI - Form */}
-      <div className="flex flex-col justify-center w-1/2 px-16">
-        <div className="flex flex-col gap-5 max-w-sm">
-          <img src="/login/logo.png" alt="Match-Up Logo" className="w-40" />
-          <h1 className="text-4xl font-bold text-gray-900 mb-5">Welcome</h1>
+      <div className="flex flex-col justify-center items-center lg:items-start w-full lg:w-1/2 px-8 md:px-16">
+        <div className="flex flex-col gap-5 w-full max-w-sm">
+          <img src="/login/logo.png" alt="Match-Up Logo" className="w-40 mb-2" />
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-5">Welcome</h1>
           {/* Email */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -92,7 +92,7 @@ export default function LoginPage() {
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="flex-1 outline-none text-sm text-gray-700"
+                className="flex-1 outline-none text-sm text-gray-700 w-full"
               />
             </div>
           </div>
@@ -108,11 +108,11 @@ export default function LoginPage() {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="flex-1 outline-none text-sm text-gray-700"
+                className="flex-1 outline-none text-sm text-gray-700 w-full"
               />
               <button
                 onClick={() => setShowPassword(!showPassword)}
-                className="text-gray-400 text-sm"
+                className="text-gray-400 text-sm ml-2"
               >
                 {showPassword ? "Hide" : "Show"}
               </button>
@@ -126,7 +126,7 @@ export default function LoginPage() {
           <button
             onClick={handleLogin}
             disabled={loading}
-            className="w-full bg-[#1a3a7c] text-white font-semibold py-3 rounded-lg mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full bg-[#1a3a7c] text-white font-semibold py-3 rounded-lg mt-2 disabled:opacity-60 disabled:cursor-not-allowed transition-colors hover:bg-[#122859]"
           >
             {loading ? "Loading..." : "Login"}
           </button>
@@ -134,7 +134,7 @@ export default function LoginPage() {
       </div>
 
       {/* KANAN - Gambar */}
-      <div className="w-1/2 relative">
+      <div className="hidden lg:block w-1/2 relative">
         <div
           className="absolute inset-0 bg-no-repeat"
           style={{

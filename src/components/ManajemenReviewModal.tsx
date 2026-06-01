@@ -190,11 +190,19 @@ export default function ManajemenReviewModal({ manifestId, onClose }: Props) {
                 const hasDiscrepancy = !!disc;
 
                 let photoUrl = null;
-                if (manifest.inbound_sessions && manifest.inbound_sessions.length > 0) {
+                if (
+                  manifest.inbound_sessions &&
+                  manifest.inbound_sessions.length > 0
+                ) {
                   for (const session of manifest.inbound_sessions) {
                     if (session.scan_logs) {
                       // Cocokkan part_id dari item yang sedang di-render dengan part_id di scan_log
-                      const log = session.scan_logs.find((sl: any) => sl.part_id === item.part_id && sl.digital_evidence && sl.digital_evidence.length > 0);
+                      const log = session.scan_logs.find(
+                        (sl: any) =>
+                          sl.part_id === item.part_id &&
+                          sl.digital_evidence &&
+                          sl.digital_evidence.length > 0,
+                      );
                       if (log) {
                         photoUrl = log.digital_evidence[0].photo_url;
                         break;
@@ -354,7 +362,10 @@ export default function ManajemenReviewModal({ manifestId, onClose }: Props) {
                           <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">
                             Resolution Action
                           </p>
-                          {disc.resolution_status === "PENDING" ? (
+                          {disc.resolution_status === "PENDING" &&
+                          (user?.role?.toUpperCase() === "MANAGER" ||
+                            user?.role?.toUpperCase() === "ADMIN" ||
+                            user?.role?.toUpperCase() === "MANAJEMEN") ? (
                             <div className="grid grid-cols-2 gap-2">
                               <button
                                 onClick={() =>
@@ -363,7 +374,7 @@ export default function ManajemenReviewModal({ manifestId, onClose }: Props) {
                                 disabled={resolvingId === disc.id}
                                 className="bg-green-500 hover:bg-green-600 text-white text-xs font-bold py-2.5 px-3 rounded-lg shadow-sm transition-all hover:shadow disabled:opacity-50 flex items-center justify-center gap-1.5"
                               >
-                                ✅ Approve
+                                APPROVE
                               </button>
                               <button
                                 onClick={() =>
@@ -372,14 +383,14 @@ export default function ManajemenReviewModal({ manifestId, onClose }: Props) {
                                 disabled={resolvingId === disc.id}
                                 className="bg-red-500 hover:bg-red-600 text-white text-xs font-bold py-2.5 px-3 rounded-lg shadow-sm transition-all hover:shadow disabled:opacity-50 flex items-center justify-center gap-1.5"
                               >
-                                ❌ Return
+                                RETURN
                               </button>
                               <button
                                 onClick={() => handleResolve(disc.id, "HOLD")}
                                 disabled={resolvingId === disc.id}
                                 className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold py-2.5 px-3 rounded-lg shadow-sm transition-all hover:shadow disabled:opacity-50 flex items-center justify-center gap-1.5"
                               >
-                                ⏸️ Hold
+                                HOLD
                               </button>
                               <button
                                 onClick={() =>
@@ -388,7 +399,7 @@ export default function ManajemenReviewModal({ manifestId, onClose }: Props) {
                                 disabled={resolvingId === disc.id}
                                 className="bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold py-2.5 px-3 rounded-lg shadow-sm transition-all hover:shadow disabled:opacity-50 flex items-center justify-center gap-1.5"
                               >
-                                🔄 Recount
+                                RECOUNT
                               </button>
                             </div>
                           ) : (
@@ -400,13 +411,16 @@ export default function ManajemenReviewModal({ manifestId, onClose }: Props) {
                                     ? "bg-red-500"
                                     : disc.resolution_status === "HOLD"
                                       ? "bg-orange-500"
-                                      : "bg-blue-500"
+                                      : disc.resolution_status === "PENDING"
+                                        ? "bg-gray-400"
+                                        : "bg-blue-500"
                               }`}
                             >
                               {disc.resolution_status === "APPROVED" && "✅ "}
                               {disc.resolution_status === "RETURNED" && "❌ "}
                               {disc.resolution_status === "HOLD" && "⏸️ "}
                               {disc.resolution_status === "RECOUNT" && "🔄 "}
+                              {disc.resolution_status === "PENDING" && "⏳ "}
                               Status: {disc.resolution_status}
                             </div>
                           )}
