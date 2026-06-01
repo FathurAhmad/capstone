@@ -9,7 +9,9 @@ export async function GET(request: Request) {
     const roleFilter = searchParams.get("role");
 
     const users = await prisma.profiles.findMany({
-      where: roleFilter ? { role: roleFilter } : undefined,
+      where: roleFilter
+        ? { role: roleFilter, deleted_at: null }
+        : { deleted_at: null },
       include: {
         vendors: true,
       },

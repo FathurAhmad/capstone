@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { data } from "autoprefixer";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -66,13 +65,20 @@ export async function DELETE(request: Request, { params }: RouteParams) {
 
         const { error: authDeleteError} = await supabaseAdmin.auth.admin.deleteUser(id)
 
-        const deleteProfile = await prisma.profiles.update({
+        if (authDeleteError) {
+            console.error("Supabase Auth Delete Error:", authDeleteError);
+        }
+
+        await prisma.profiles.update({
             where: { id },
             data: {
                 deleted_at: new Date()
             }
         })
+
+        return NextResponse.json({ message: "User berhasil dihapus" }, { status: 200 });
     } catch (error) {
-        
+        console.error("DELETE User Error:", error);
+        return NextResponse.json({ error: "Gagal menghapus user" }, { status: 500 });
     }
 }
