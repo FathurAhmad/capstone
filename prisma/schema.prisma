@@ -111,6 +111,7 @@ model parts {
 
 model profiles {
   id               String             @id @db.Uuid
+  email            String?            @db.VarChar(255)
   full_name        String?            @db.VarChar(255)
   role             String?            @db.VarChar(50)
   vendor_id        String?            @db.Uuid
@@ -118,11 +119,11 @@ model profiles {
   discrepancies    discrepancies[]
   inbound_sessions inbound_sessions[]
   deleted_at       DateTime?          @default(now()) @db.Timestamptz(6)
-  
+
   // SATU-SATUNYA RELASI KE AUTH.USERS TELAH DIHAPUS DI SINI
-  
-  vendors          vendors?           @relation(fields: [vendor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  scan_logs        scan_logs[]
+
+  vendors   vendors?    @relation(fields: [vendor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  scan_logs scan_logs[]
 
   @@schema("public")
 }
@@ -158,13 +159,13 @@ model vendors {
 }
 
 model qr_codes {
-  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  manifest_item_id String         @db.Uuid
-  qr_payload       String         @unique @db.VarChar(255) // Ini yang akan di-scan
-  is_scanned       Boolean        @default(false)
-  scanned_at       DateTime?      @db.Timestamptz(6)
-  
-  manifest_items   manifest_items @relation(fields: [manifest_item_id], references: [id], onDelete: Cascade)
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  manifest_item_id String    @db.Uuid
+  qr_payload       String    @unique @db.VarChar(255) // Ini yang akan di-scan
+  is_scanned       Boolean   @default(false)
+  scanned_at       DateTime? @db.Timestamptz(6)
+
+  manifest_items manifest_items @relation(fields: [manifest_item_id], references: [id], onDelete: Cascade)
 
   @@index([qr_payload])
   @@schema("public")
