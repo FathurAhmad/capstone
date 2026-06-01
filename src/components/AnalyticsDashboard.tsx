@@ -17,6 +17,7 @@ import {
 } from "recharts";
 import { useAuth } from "@/app/context/authContext";
 import { useRouter } from "next/navigation";
+import ManajemenReviewModal from "./ManajemenReviewModal";
 
 export default function AnalyticsDashboard() {
   const [search, setSearch] = useState("");
@@ -33,6 +34,7 @@ export default function AnalyticsDashboard() {
   const [manifests, setManifests] = useState<any[]>([]);
   const [loadingManifests, setLoadingManifests] = useState(true);
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [reviewManifestId, setReviewManifestId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -377,10 +379,13 @@ export default function AnalyticsDashboard() {
                         <button
                           title="View"
                           onClick={() => {
-                            if (user?.role === "VENDOR") {
+                            const currentRole = user?.role?.toUpperCase();
+                            if (currentRole === "VENDOR") {
                               router.push(`/vendor/manifest/${manifest.id}`);
-                            } else if (user?.role === "ADMIN" || user?.role === "MANAJEMEN") {
-                              router.push(`/manajemen/manifest/${manifest.id}`);
+                            } else if (currentRole === "ADMIN" || currentRole === "MANAGER" || currentRole === "MANAJEMEN") {
+                              setReviewManifestId(manifest.id);
+                            } else {
+                              alert("Role tidak dikenali: " + user?.role);
                             }
                           }}
                           className="w-8 h-8 border border-gray-200 bg-white rounded-full flex items-center justify-center text-gray-500 hover:text-blue-600 hover:border-blue-500 hover:shadow-sm transition-all"
@@ -412,6 +417,29 @@ export default function AnalyticsDashboard() {
           </table>
         </div>
       </div>
+
+      {reviewManifestId && (
+        <ManajemenReviewModal
+          manifestId={reviewManifestId}
+          onClose={() => {
+            setReviewManifestId(null);
+            // Optionally refresh the dashboard manifests to get new statuses
+            const fetchRecentManifests = async () => {
+              const token = localStorage.getItem("access_token");
+              if (!token) return;
+              let url = "/api/manifests";
+              if (user?.role === "VENDOR" && user?.vendor_id) {
+                url += `?vendor_id=${user.vendor_id}`;
+              }
+              const res = await fetch(url);
+              if (res.ok) {
+                setManifests(await res.json());
+              }
+            };
+            fetchRecentManifests();
+          }}
+        />
+      )}
     </div>
   );
 }

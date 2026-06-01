@@ -146,7 +146,7 @@ export default function ManajemenHistory() {
                         </button>
                       </td>
                       <td className="text-center py-4 px-3">
-                        <button onClick={() => router.push(`/manajemen/manifest/${s.id}`)} className="text-pink-500 hover:text-pink-600 hover:underline text-xs px-3 py-1 font-medium">
+                        <button onClick={() => setDetailItem(s)} className="text-pink-500 hover:text-pink-600 hover:underline text-xs px-3 py-1 font-medium">
                           Check Details
                         </button>
                       </td>
