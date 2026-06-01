@@ -4,11 +4,12 @@ import { useState } from "react";
 import { useAuth } from "@/app/context/authContext";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import AnalyticsDashboard from "@/components/AnalyticsDashboard";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"user" | "vendor" | "part">("user");
+  const [activeTab, setActiveTab] = useState<"overview" | "user" | "vendor" | "part">("overview");
 
   // User Form State
   const [userFullName, setUserFullName] = useState("");
@@ -125,6 +126,16 @@ export default function AdminDashboard() {
         {/* Tab Navigation */}
         <div className="flex gap-4 border-b border-gray-200 mb-8 overflow-x-auto">
           <button
+            onClick={() => setActiveTab("overview")}
+            className={`pb-3 px-2 text-sm font-semibold transition-colors whitespace-nowrap ${
+              activeTab === "overview"
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Analytics Overview
+          </button>
+          <button
             onClick={() => setActiveTab("user")}
             className={`pb-3 px-2 text-sm font-semibold transition-colors whitespace-nowrap ${
               activeTab === "user"
@@ -158,6 +169,10 @@ export default function AdminDashboard() {
 
         {/* Tab Content */}
         <div className="bg-white rounded-2xl shadow-sm p-6 md:p-8">
+          {activeTab === "overview" && (
+            <AnalyticsDashboard />
+          )}
+
           {activeTab === "user" && (
             <form onSubmit={handleAddUser} className="max-w-md">
               <h2 className="text-xl font-semibold text-gray-800 mb-6">Create New User</h2>

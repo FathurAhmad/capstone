@@ -1,22 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import { useAuth } from "@/app/context/authContext";
-
-type Manifest = {
-  id: string,
-  date: string,
-  vendor_id: string,
-  status: string,
-  manifest_items: [
-    batch_code: string,
-    part_id: string,
-    expected_qty: string,
-    expected_boxes: string
-  ]
-}
 
 type Shipment = {
   id: string;
@@ -31,19 +19,57 @@ type Shipment = {
   totalWeight: string;
 };
 
-const shipments: Shipment[] = [
-  { id: "ID#1234", date: "Oct 26, 2026", vendor: "Vendor A", tipe: "Mismatch", finalStatus: "Returned", partNumber: "A1", partName: "Screw", totalItem: "200 pcs", totalBox: "10 box", totalWeight: "200 gr" },
-  { id: "ID#1235", date: "Oct 26, 2026", vendor: "Vendor A", tipe: "Mismatch", finalStatus: "Returned", partNumber: "A2", partName: "Bolt", totalItem: "150 pcs", totalBox: "8 box", totalWeight: "180 gr" },
-  { id: "ID#1236", date: "Oct 26, 2026", vendor: "Vendor A", tipe: "Mismatch", finalStatus: "Returned", partNumber: "A3", partName: "Nut", totalItem: "300 pcs", totalBox: "12 box", totalWeight: "250 gr" },
-  { id: "ID#1237", date: "Oct 26, 2026", vendor: "Vendor A", tipe: "Match", finalStatus: "Approved", partNumber: "A4", partName: "Spring", totalItem: "100 pcs", totalBox: "5 box", totalWeight: "100 gr" },
-];
-
 export default function ManajemenHistory() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showCalendar, setShowCalendar] = useState(false);
   const [detailItem, setDetailItem] = useState<Shipment | null>(null);
   const [photoItem, setPhotoItem] = useState<Shipment | null>(null);
 
+  const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/manifests`);
+        if (res.ok) {
+          const manifestsData = await res.json();
+          const flattenedShipments: Shipment[] = [];
+
+          manifestsData.forEach((m: any) => {
+            if (m.manifest_items) {
+              m.manifest_items.forEach((item: any) => {
+                const disc = m.discrepancies?.find((d: any) => d.part_id === item.part_id);
+                flattenedShipments.push({
+                  id: m.manifest_number,
+                  date: new Date(m.created_at).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' }),
+                  vendor: m.vendors?.name || m.vendor_id || "-",
+                  tipe: disc ? "Mismatch" : "Match",
+                  finalStatus: disc ? (disc.resolution_status || "Pending") : m.status,
+                  partNumber: item.parts?.part_number || "-",
+                  partName: item.parts?.part_name || "-",
+                  totalItem: `${item.expected_qty} pcs`,
+                  totalBox: `${item.expected_boxes || 0} box`,
+                  totalWeight: "-",
+                });
+              });
+            }
+          });
+
+          setShipments(flattenedShipments);
+        }
+      } catch (error) {
+        console.error("Failed to fetch history:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHistory();
+  }, []);
 
   const formatDate = (date: Date) => {
     const d = date.getDate().toString().padStart(2, "0");
@@ -80,44 +106,56 @@ export default function ManajemenHistory() {
 
         <div className="bg-white rounded-xl p-6">
           <p className="font-semibold text-gray-800 mb-4">Recent Shipment Exceptions</p>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-center py-3 font-semibold text-gray-700 px-3">Shipment ID</th>
-                <th className="text-center py-3 font-semibold text-gray-700 px-3">Date</th>
-                <th className="text-center py-3 font-semibold text-gray-700 px-3">Vendor</th>
-                <th className="text-center py-3 font-semibold text-gray-700 px-3">Tipe</th>
-                <th className="text-center py-3 font-semibold text-gray-700 px-3">Final Order Status</th>
-                <th className="text-center py-3 font-semibold text-gray-700 px-3">Proof of Delivery</th>
-                <th className="text-center py-3 font-semibold text-gray-700 px-3">Details</th>
-              </tr>
-            </thead>
-            <tbody>
-              {shipments.map((s, i) => (
-                <tr key={i} className="border-b border-gray-100">
-                  <td className="text-center py-4 text-gray-600 px-3">{s.id}</td>
-                  <td className="text-center py-4 text-gray-600 px-3">{s.date}</td>
-                  <td className="text-center py-4 text-gray-600 px-3">{s.vendor}</td>
-                  <td className="text-center py-4 px-3">
-                    <span className="border border-gray-300 text-gray-600 text-xs px-4 py-1.5 rounded-full">{s.tipe}</span>
-                  </td>
-                  <td className="text-center py-4 px-3">
-                    <span className={`text-white text-xs px-4 py-1.5 rounded-full ${s.finalStatus === "Approved" ? "bg-green-500" : "bg-red-500"}`}>{s.finalStatus}</span>
-                  </td>
-                  <td className="text-center py-4 px-3">
-                    <button onClick={() => setPhotoItem(s)} className="bg-blue-400 hover:bg-blue-500 text-white text-xs px-5 py-1.5 rounded-full">
-                      Photo
-                    </button>
-                  </td>
-                  <td className="text-center py-4 px-3">
-                    <button onClick={() => setDetailItem(s)} className="bg-pink-300 hover:bg-pink-400 text-white text-xs px-4 py-1.5 rounded-full">
-                      Check Details
-                    </button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-center py-3 font-semibold text-gray-700 px-3">Shipment ID</th>
+                  <th className="text-center py-3 font-semibold text-gray-700 px-3">Date</th>
+                  <th className="text-center py-3 font-semibold text-gray-700 px-3">Vendor</th>
+                  <th className="text-center py-3 font-semibold text-gray-700 px-3">Tipe</th>
+                  <th className="text-center py-3 font-semibold text-gray-700 px-3">Final Order Status</th>
+                  <th className="text-center py-3 font-semibold text-gray-700 px-3">Proof of Delivery</th>
+                  <th className="text-center py-3 font-semibold text-gray-700 px-3">Details</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-8 text-gray-500">Loading history...</td>
+                  </tr>
+                ) : shipments.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-8 text-gray-500">No shipment history found.</td>
+                  </tr>
+                ) : (
+                  shipments.map((s, i) => (
+                    <tr key={i} className="border-b border-gray-100">
+                      <td className="text-center py-4 text-gray-600 px-3">{s.id}</td>
+                      <td className="text-center py-4 text-gray-600 px-3">{s.date}</td>
+                      <td className="text-center py-4 text-gray-600 px-3">{s.vendor}</td>
+                      <td className="text-center py-4 px-3">
+                        <span className="border border-gray-300 text-gray-600 text-xs px-4 py-1.5 rounded-full">{s.tipe}</span>
+                      </td>
+                      <td className="text-center py-4 px-3">
+                        <span className={`text-white text-xs px-4 py-1.5 rounded-full ${s.finalStatus === "Approved" || s.finalStatus === "COMPLETED" ? "bg-green-500" : s.finalStatus === "Pending" ? "bg-orange-400" : s.finalStatus === "LOCKED" ? "bg-orange-500" : s.finalStatus === "CHECKING" ? "bg-blue-500" : s.finalStatus === "DRAFT" ? "bg-gray-400" : s.finalStatus === "DISCREPANCY" ? "bg-red-500" : "bg-red-500"}`}>{s.finalStatus}</span>
+                      </td>
+                      <td className="text-center py-4 px-3">
+                        <button onClick={() => setPhotoItem(s)} className="text-blue-500 hover:text-blue-600 hover:underline text-xs px-3 py-1 font-medium">
+                          Photo
+                        </button>
+                      </td>
+                      <td className="text-center py-4 px-3">
+                        <button onClick={() => router.push(`/manajemen/manifest/${s.id}`)} className="text-pink-500 hover:text-pink-600 hover:underline text-xs px-3 py-1 font-medium">
+                          Check Details
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -134,7 +172,7 @@ export default function ManajemenHistory() {
               </button>
             </div>
             <div className="flex gap-2 mb-5">
-              <span className={`text-white text-xs px-4 py-1.5 rounded-full ${detailItem.finalStatus === "Approved" ? "bg-green-500" : "bg-red-500"}`}>{detailItem.finalStatus}</span>
+              <span className={`text-white text-xs px-4 py-1.5 rounded-full ${detailItem.finalStatus === "Approved" || detailItem.finalStatus === "COMPLETED" ? "bg-green-500" : detailItem.finalStatus === "Pending" ? "bg-orange-400" : detailItem.finalStatus === "LOCKED" ? "bg-orange-500" : detailItem.finalStatus === "CHECKING" ? "bg-blue-500" : detailItem.finalStatus === "DRAFT" ? "bg-gray-400" : detailItem.finalStatus === "DISCREPANCY" ? "bg-red-500" : "bg-red-500"}`}>{detailItem.finalStatus}</span>
               <span className="border border-gray-300 text-gray-600 text-xs px-4 py-1.5 rounded-full">{detailItem.tipe}</span>
             </div>
             <div className="flex flex-col gap-2 text-sm text-gray-700">
