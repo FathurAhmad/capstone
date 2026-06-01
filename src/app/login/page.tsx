@@ -20,6 +20,11 @@ export default function LoginPage() {
       return;
     }
 
+    if (password.length < 8) {
+      setError("Password minimal 8 karakter");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -48,20 +53,19 @@ export default function LoginPage() {
       // 🛑 2. PASTIKAN MAP ROLE SESUAI DATABASE (Contoh disamakan ke Uppercase)
       // Misal data dari Prisma: data.user.role = "VENDOR"
       const role = data.user?.role || data.role || "";
-      const userRole = role.toUpperCase() // Sesuaikan dengan struktur JSON backend
-      
+      const userRole = role.toUpperCase(); // Sesuaikan dengan struktur JSON backend
+
       const roleMap: Record<string, string> = {
-        "VENDOR": "/vendor/dashboard",
-        "STAFF": "/petugas/dashboard",   // Di DB namanya STAFF, bukan Petugas Gudang
-        "MANAGER": "/manajemen/dashboard",
-        "ADMIN": "/manajemen/dashboard",        
+        VENDOR: "/vendor/dashboard",
+        STAFF: "/petugas/dashboard", // Di DB namanya STAFF, bukan Petugas Gudang
+        MANAGER: "/manajemen/dashboard",
+        ADMIN: "/admin/dashboard",
       };
 
       // 🛑 3. REDIRECT
       // Ubah jadi uppercase untuk amannya saat mencocokkan
-      const path = roleMap[userRole] ?? "/"; 
+      const path = roleMap[userRole] ?? "/";
       router.push(path);
-
     } catch (err) {
       console.error(err);
       setError("Terjadi kesalahan jaringan. Coba lagi.");
@@ -71,30 +75,45 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex h-screen w-full">
+    <section className="flex min-h-screen w-full">
       {/* KIRI - Form */}
-      <div className="flex flex-col w-1/2 px-16 py-8 bg-white">
-        <div className="mb-16">
-          <img src="/login/logo.png" alt="Match-Up Logo" className="h-12" />
-        </div>
-
-        <h1 className="text-4xl font-bold text-gray-900 mb-10">Welcome</h1>
-
+      <div className="flex flex-col justify-center w-1/2 px-16">
         <div className="flex flex-col gap-5 max-w-sm">
+          <img src="/login/logo.png" alt="Match-Up Logo" className="w-40" />
+          <h1 className="text-4xl font-bold text-gray-900 mb-5">Welcome</h1>
           {/* Email */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 gap-2">
-              <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="flex-1 outline-none text-sm text-gray-700" />
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email
+            </label>
+            <div className="flex border border-gray-300 rounded-lg px-3 py-2">
+              <input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="flex-1 outline-none text-sm text-gray-700"
+              />
             </div>
           </div>
 
           {/* Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-            <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 gap-2">
-              <input type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="flex-1 outline-none text-sm text-gray-700" />
-              <button onClick={() => setShowPassword(!showPassword)} className="text-gray-400 text-sm">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Password
+            </label>
+            <div className="flex border border-gray-300 rounded-lg px-3 py-2">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="flex-1 outline-none text-sm text-gray-700"
+              />
+              <button
+                onClick={() => setShowPassword(!showPassword)}
+                className="text-gray-400 text-sm"
+              >
                 {showPassword ? "Hide" : "Show"}
               </button>
             </div>
@@ -104,7 +123,11 @@ export default function LoginPage() {
           {error && <p className="text-red-500 text-sm -mt-2">{error}</p>}
 
           {/* Login Button */}
-          <button onClick={handleLogin} disabled={loading} className="w-full bg-[#1a3a7c] text-white font-semibold py-3 rounded-lg mt-2 disabled:opacity-60 disabled:cursor-not-allowed">
+          <button
+            onClick={handleLogin}
+            disabled={loading}
+            className="w-full bg-[#1a3a7c] text-white font-semibold py-3 rounded-lg mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
             {loading ? "Loading..." : "Login"}
           </button>
         </div>
@@ -128,6 +151,6 @@ export default function LoginPage() {
           }}
         />
       </div>
-    </div>
+    </section>
   );
 }

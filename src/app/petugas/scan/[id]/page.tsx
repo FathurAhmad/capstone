@@ -64,7 +64,8 @@ export default function WorkspaceScannerPage() {
     
     if (foundItem) {
       setScannedItem(foundItem);
-      setActualQty(foundItem.expected_qty); // Default isi penuh
+      // Saran 1: Dihapus agar petugas wajib menghitung dan mengisi secara manual
+      // setActualQty(foundItem.expected_qty); 
     } else {
       setErrorMsg(`Barang dengan kode QR "${decodedText}" tidak ditemukan di manifes ini!`);
     }
@@ -86,8 +87,8 @@ export default function WorkspaceScannerPage() {
     
     const qty = typeof actualQty === "number" ? actualQty : 0;
     
-    // Validasi Foto jika mismatch
-    const isMismatch = qty < scannedItem.expected_qty;
+    // Validasi Foto jika terjadi selisih (KURANG atau LEBIH)
+    const isMismatch = qty !== scannedItem.expected_qty;
     if ((isMismatch || isDamaged) && !photoBase64) {
       setErrorMsg("Karena terdapat selisih atau kerusakan, Anda WAJIB melampirkan foto bukti.");
       return;
