@@ -118,7 +118,7 @@ model profiles {
   updated_at       DateTime?          @default(now()) @db.Timestamptz(6)
   discrepancies    discrepancies[]
   inbound_sessions inbound_sessions[]
-  deleted_at       DateTime?          @default(now()) @db.Timestamptz(6)
+  deleted_at       DateTime?          @db.Timestamptz(6)
 
   // SATU-SATUNYA RELASI KE AUTH.USERS TELAH DIHAPUS DI SINI
 
