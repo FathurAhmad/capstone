@@ -8,7 +8,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   try {
     const { id } = await params;
     const body = await request.json();
-    const { full_name, password } = body;
+    const { full_name, password, role, avatar_url } = body;
 
     // 1. Update password di Supabase Auth (JIKA password diisi)
     if (password) {
@@ -37,8 +37,14 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       updated_at: new Date(),
     };
     
-    if (full_name) {
+    if (full_name !== undefined) {
       updateData.full_name = full_name;
+    }
+    if (role !== undefined) {
+      updateData.role = role;
+    }
+    if (avatar_url !== undefined) {
+      updateData.avatar_url = avatar_url;
     }
 
     await prisma.profiles.update({
