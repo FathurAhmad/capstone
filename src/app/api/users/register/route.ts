@@ -53,11 +53,7 @@ export async function POST(request: Request) {
     // rollback auth user jika profile gagal
     if (createdUserId) {
       await supabaseAdmin.auth.admin.deleteUser(createdUserId);
-    }
-  
-    console.error("GET vendors error:", error);
-    throw error; // biar Next.js tampilkan stack trace
-  
+    }  
 
     return NextResponse.json(
       { error: "Internal server error" },
