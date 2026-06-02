@@ -24,6 +24,7 @@ export async function POST(request: Request) {
       await supabaseAdmin.auth.admin.createUser({
         email,
         password: tempPassword,
+        email_confirm: true,
       });
 
     if (authError || !authData.user) {
