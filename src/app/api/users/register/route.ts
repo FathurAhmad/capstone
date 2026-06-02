@@ -39,6 +39,7 @@ export async function POST(request: Request) {
     await prisma.profiles.create({
       data: {
         id: createdUserId,
+        email,
         full_name,
         role,
         // vendor_id: role === "vendor" ? vendor_id : null,
