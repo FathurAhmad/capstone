@@ -6,6 +6,7 @@ import "react-calendar/dist/Calendar.css";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/app/context/authContext";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 type Part = {
   id: string;
@@ -104,13 +105,13 @@ export default function NewShipment() {
 
       const data = await res.json();
       if (res.ok) {
-        alert("Manifest berhasil disimpan!");
+        toast.success("Manifest berhasil disimpan!");
       } else {
-        alert(data.error || "Terjadi kesalahan saat menyimpan manifest");
+        toast.error(data.error || "Terjadi kesalahan saat menyimpan manifest");
       }
     } catch (error) {
       console.error("Error submitting manifest:", error);
-      alert("Terjadi kesalahan pada server");
+      toast.error("Terjadi kesalahan pada server");
     }
   }
 
@@ -138,14 +139,14 @@ export default function NewShipment() {
 
       const data = await res.json();
       if (res.ok) {
-        alert("Manifest berhasil disimpan!");
+        toast.success("Manifest berhasil disimpan!");
         router.push("/vendor/dashboard");
       } else {
-        alert(data.error || "Terjadi kesalahan saat menyimpan manifest");
+        toast.error(data.error || "Terjadi kesalahan saat menyimpan manifest");
       }
     } catch (error) {
       console.error("Error submitting manifest:", error);
-      alert("Terjadi kesalahan pada server");
+      toast.error("Terjadi kesalahan pada server");
     }
   };
 

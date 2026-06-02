@@ -18,6 +18,8 @@ import {
 import { useAuth } from "@/app/context/authContext";
 import { useRouter } from "next/navigation";
 import ManajemenReviewModal from "./ManajemenReviewModal";
+import toast from "react-hot-toast";
+import ConfirmModal from "./ConfirmModal";
 
 export default function AnalyticsDashboard() {
   const [search, setSearch] = useState("");
@@ -35,6 +37,7 @@ export default function AnalyticsDashboard() {
   const [loadingManifests, setLoadingManifests] = useState(true);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [reviewManifestId, setReviewManifestId] = useState<string | null>(null);
+  const [confirmLockId, setConfirmLockId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -83,17 +86,11 @@ export default function AnalyticsDashboard() {
     }
   }, [user]);
 
-  const handleLock = async (id: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to lock this manifest? Once locked, you cannot edit it.",
-      )
-    )
-      return;
+  const performLock = async (id: string) => {
     try {
       const res = await fetch(`/api/manifests/${id}/lock`, { method: "PATCH" });
       if (res.ok) {
-        alert("Manifest locked successfully.");
+        toast.success("Manifest locked successfully.");
         // Refresh table
         let url = "/api/manifests";
         if (user?.role === "VENDOR" && user?.vendor_id) {
@@ -103,10 +100,12 @@ export default function AnalyticsDashboard() {
         if (refreshRes.ok) setManifests(await refreshRes.json());
       } else {
         const data = await res.json();
-        alert(data.error || "Failed to lock manifest");
+        toast.error(data.error || "Failed to lock manifest");
       }
     } catch (error) {
-      alert("Server error occurred.");
+      toast.error("Server error occurred.");
+    } finally {
+      setConfirmLockId(null);
     }
   };
 
@@ -385,7 +384,7 @@ export default function AnalyticsDashboard() {
                             } else if (currentRole === "ADMIN" || currentRole === "MANAGER" || currentRole === "MANAJEMEN") {
                               setReviewManifestId(manifest.id);
                             } else {
-                              alert("Role tidak dikenali: " + user?.role);
+                              toast.error("Role tidak dikenali: " + user?.role);
                             }
                           }}
                           className="w-8 h-8 border border-gray-200 bg-white rounded-full flex items-center justify-center text-gray-500 hover:text-blue-600 hover:border-blue-500 hover:shadow-sm transition-all"
@@ -400,7 +399,7 @@ export default function AnalyticsDashboard() {
                         {manifest.status === "DRAFT" && user?.role === "VENDOR" && (
                           <button
                             title="Lock"
-                            onClick={() => handleLock(manifest.id)}
+                            onClick={() => setConfirmLockId(manifest.id)}
                             className="w-8 h-8 border border-gray-200 bg-white rounded-full flex items-center justify-center text-gray-500 hover:text-orange-500 hover:border-orange-500 hover:shadow-sm transition-all"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -440,6 +439,17 @@ export default function AnalyticsDashboard() {
           }}
         />
       )}
+
+      <ConfirmModal
+        isOpen={!!confirmLockId}
+        title="Lock Manifest"
+        message="Are you sure you want to lock this manifest? Once locked, you cannot edit it."
+        confirmText="Yes, Lock It"
+        onConfirm={() => {
+          if (confirmLockId) performLock(confirmLockId);
+        }}
+        onCancel={() => setConfirmLockId(null)}
+      />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 import { getDB } from "@/lib/idb";
 import { useAuth } from "@/app/context/authContext";
+import toast from "react-hot-toast";
 
 export default function ManifestPreparationPage() {
   const params = useParams();
@@ -97,7 +98,7 @@ export default function ManifestPreparationPage() {
       router.push(`/petugas/scan/${manifest.id}?session_id=${sessionId}`);
     } catch (err) {
       console.error(err);
-      alert("Gagal memulai sesi. Pastikan browser mendukung IndexedDB.");
+      toast.error("Gagal memulai sesi. Pastikan browser mendukung IndexedDB.");
       setIsStarting(false);
     }
   };

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { getDB, clearAllLocalData, OfflineManifest, OfflineScanLog, OfflineEvidence } from "@/lib/idb";
 import SignaturePad, { SignaturePadRef } from "@/components/SignaturePad";
+import toast from "react-hot-toast";
 
 export default function SignOffPage() {
   const params = useParams();
@@ -105,7 +106,7 @@ export default function SignOffPage() {
       await clearAllLocalData(id);
 
       // 4. Sukses dan Redirect
-      alert("Sinkronisasi berhasil! Data manifes telah selesai diproses.");
+      toast.success("Sinkronisasi berhasil! Data manifes telah selesai diproses.");
       router.push("/petugas/dashboard");
 
     } catch (err: any) {

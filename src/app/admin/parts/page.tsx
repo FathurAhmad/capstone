@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import toast from "react-hot-toast";
+import ConfirmModal from "@/components/ConfirmModal";
 
 interface Part {
   id: string;
@@ -13,6 +15,8 @@ export default function ManagePartsPage() {
   const [parts, setParts] = useState<Part[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [confirmDeleteName, setConfirmDeleteName] = useState("");
 
   // Form State
   const [partNumber, setPartNumber] = useState("");
@@ -52,7 +56,7 @@ export default function ManagePartsPage() {
         })
       });
       if (res.ok) {
-        alert("Part successfully added!");
+        toast.success("Part successfully added!");
         setPartNumber("");
         setPartName("");
         setPartUnit("pcs");
@@ -60,27 +64,35 @@ export default function ManagePartsPage() {
         fetchParts();
       } else {
         const data = await res.json();
-        alert(data.error || "Failed to add part");
+        toast.error(data.error || "Failed to add part");
       }
     } catch (err) {
-      alert("Server error");
+      toast.error("Server error");
     } finally {
       setPartLoading(false);
     }
   };
 
-  const handleDeletePart = async (id: string, name: string) => {
-    if (!confirm(`Apakah Anda yakin ingin menghapus part "${name}"?`)) return;
+  const handleDeletePart = (id: string, name: string) => {
+    setConfirmDeleteId(id);
+    setConfirmDeleteName(name);
+  };
+
+  const performDeletePart = async () => {
+    if (!confirmDeleteId) return;
     try {
-      const res = await fetch(`/api/parts/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/parts/${confirmDeleteId}`, { method: "DELETE" });
       if (res.ok) {
+        toast.success("Part berhasil dihapus!");
         fetchParts();
       } else {
         const data = await res.json();
-        alert(data.error || "Gagal menghapus part");
+        toast.error(data.error || "Gagal menghapus part");
       }
     } catch (err) {
-      alert("Server error");
+      toast.error("Server error");
+    } finally {
+      setConfirmDeleteId(null);
     }
   };
 
@@ -222,6 +234,15 @@ export default function ManagePartsPage() {
           </div>
         )}
 
+        <ConfirmModal
+          isOpen={!!confirmDeleteId}
+          title="Hapus Part"
+          message={`Apakah Anda yakin ingin menghapus part "${confirmDeleteName}"?`}
+          confirmText="Hapus"
+          isDanger={true}
+          onConfirm={performDeletePart}
+          onCancel={() => setConfirmDeleteId(null)}
+        />
       </div>
     </div>
   );
