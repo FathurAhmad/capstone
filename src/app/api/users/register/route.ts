@@ -24,6 +24,7 @@ export async function POST(request: Request) {
       await supabaseAdmin.auth.admin.createUser({
         email,
         password: tempPassword,
+        email_confirm: true,
       });
 
     if (authError || !authData.user) {
@@ -39,6 +40,7 @@ export async function POST(request: Request) {
     await prisma.profiles.create({
       data: {
         id: createdUserId,
+        email,
         full_name,
         role,
         // vendor_id: role === "vendor" ? vendor_id : null,
@@ -53,11 +55,7 @@ export async function POST(request: Request) {
     // rollback auth user jika profile gagal
     if (createdUserId) {
       await supabaseAdmin.auth.admin.deleteUser(createdUserId);
-    }
-  
-    console.error("GET vendors error:", error);
-    throw error; // biar Next.js tampilkan stack trace
-  
+    }  
 
     return NextResponse.json(
       { error: "Internal server error" },
