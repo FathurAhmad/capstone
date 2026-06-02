@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Calendar from "react-calendar";
+import { useState, useEffect, useDeferredValue } from "react";
+import dynamic from "next/dynamic";
+const Calendar = dynamic(() => import("react-calendar"), { ssr: false });
 import "react-calendar/dist/Calendar.css";
 import {
   LineChart,
@@ -31,6 +32,8 @@ export default function AnalyticsDashboard() {
   // State for analytics aggregates
   const [analytics, setAnalytics] = useState<any>(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(true);
+  const [confirmResetOpen, setConfirmResetOpen] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   // State for dynamic manifests (for table)
   const [manifests, setManifests] = useState<any[]>([]);
@@ -109,6 +112,34 @@ export default function AnalyticsDashboard() {
     }
   };
 
+  const handleResetDatabase = async () => {
+    setIsResetting(true);
+    try {
+      const res = await fetch('/api/admin/reset-db', {
+        method: 'POST',
+      });
+      if (res.ok) {
+        toast.success("Database reset successfully.");
+        // Refresh table
+        let url = "/api/manifests";
+        if (user?.role === "VENDOR" && user?.vendor_id) {
+          url += `?vendor_id=${user.vendor_id}`;
+        }
+        const refreshRes = await fetch(url);
+        if (refreshRes.ok) setManifests(await refreshRes.json());
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Failed to reset database");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Gagal melakukan reset database.');
+    } finally {
+      setIsResetting(false);
+      setConfirmResetOpen(false);
+    }
+  };
+
   const formatDate = (date: Date) => {
     const d = date.getDate().toString().padStart(2, "0");
     const m = (date.getMonth() + 1).toString().padStart(2, "0");
@@ -116,10 +147,17 @@ export default function AnalyticsDashboard() {
     return `${d}/${m}/${y}`;
   };
 
-  const filteredManifests =
-    statusFilter === "ALL"
-      ? manifests
-      : manifests.filter((m) => m.status === statusFilter);
+  const deferredSearch = useDeferredValue(search);
+
+  const filteredManifests = manifests.filter((m) => {
+    const matchStatus = statusFilter === "ALL" || m.status === statusFilter;
+    const s = deferredSearch.toLowerCase();
+    const matchSearch =
+      !s ||
+      m.manifest_no?.toLowerCase().includes(s) ||
+      m.vendors?.name?.toLowerCase().includes(s);
+    return matchStatus && matchSearch;
+  });
 
   // Defaults if analytics still loading
   const totalShipments = analytics?.totalShipments || 0;
@@ -133,9 +171,19 @@ export default function AnalyticsDashboard() {
     <div className="w-full">
       {/* Header + Search + Date */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
-          Analytics Overview
-        </h2>
+        <div className="flex items-center gap-4">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+            Analytics Overview
+          </h2>
+          {user?.role === "ADMIN" && (
+            <button
+              onClick={() => setConfirmResetOpen(true)}
+              className="text-xs bg-red-100 text-red-600 px-3 py-1 rounded-full font-bold hover:bg-red-200 transition-colors"
+            >
+              Reset All Data
+            </button>
+          )}
+        </div>
         <div className="flex items-center gap-2 md:gap-3">
           <div className="flex items-center bg-white border border-gray-200 rounded-lg px-3 py-2 gap-2 flex-1 sm:w-64 sm:flex-none shadow-sm">
             <input
@@ -449,6 +497,17 @@ export default function AnalyticsDashboard() {
           if (confirmLockId) performLock(confirmLockId);
         }}
         onCancel={() => setConfirmLockId(null)}
+      />
+
+      <ConfirmModal
+        isOpen={confirmResetOpen}
+        title="Reset All Data"
+        message="Are you sure you want to delete ALL data? This cannot be undone."
+        confirmText="Yes, Reset"
+        isDanger={true}
+        onConfirm={handleResetDatabase}
+        onCancel={() => setConfirmResetOpen(false)}
+        isLoading={isResetting}
       />
     </div>
   );

@@ -17,6 +17,7 @@ export default function ManagePartsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmDeleteName, setConfirmDeleteName] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Form State
   const [partNumber, setPartNumber] = useState("");
@@ -78,8 +79,9 @@ export default function ManagePartsPage() {
     setConfirmDeleteName(name);
   };
 
-  const performDeletePart = async () => {
+  const performDelete = async () => {
     if (!confirmDeleteId) return;
+    setIsDeleting(true);
     try {
       const res = await fetch(`/api/parts/${confirmDeleteId}`, { method: "DELETE" });
       if (res.ok) {
@@ -90,8 +92,9 @@ export default function ManagePartsPage() {
         toast.error(data.error || "Gagal menghapus part");
       }
     } catch (err) {
-      toast.error("Server error");
+      toast.error("Terjadi kesalahan server");
     } finally {
+      setIsDeleting(false);
       setConfirmDeleteId(null);
     }
   };
@@ -240,8 +243,9 @@ export default function ManagePartsPage() {
           message={`Apakah Anda yakin ingin menghapus part "${confirmDeleteName}"?`}
           confirmText="Hapus"
           isDanger={true}
-          onConfirm={performDeletePart}
+          onConfirm={performDelete}
           onCancel={() => setConfirmDeleteId(null)}
+          isLoading={isDeleting}
         />
       </div>
     </div>

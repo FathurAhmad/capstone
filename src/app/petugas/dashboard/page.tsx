@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Calendar from "react-calendar";
+import { useState, useEffect, useDeferredValue } from "react";
+import dynamic from "next/dynamic";
+const Calendar = dynamic(() => import("react-calendar"), { ssr: false });
 import "react-calendar/dist/Calendar.css";
 import {
   BarChart,
@@ -25,9 +26,11 @@ function Avatar({ name, index }: { name: string; index: number }) {
 
 export default function PetugasDashboard() {
   const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showCalendar, setShowCalendar] = useState(false);
 
+  const [rawManifests, setRawManifests] = useState<any[]>([]);
   const [manifests, setManifests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -40,6 +43,7 @@ export default function PetugasDashboard() {
 
         // Filter hanya manifes yang BUKAN DRAFT
         const pending = data.filter((m: any) => m.status !== "DRAFT");
+        setRawManifests(pending);
         setManifests(pending);
       } catch (error) {
         console.error("Failed to fetch manifests", error);

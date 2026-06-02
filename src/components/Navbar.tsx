@@ -59,17 +59,20 @@ export default function Navbar() {
 
           {user ? (
             <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-gray-700">
-                {user.full_name}
-              </span>
-              <div className="w-9 h-9 rounded-full bg-gray-300 overflow-hidden">
-                <img
-                  src="/vendor/avatar.png"
-                  alt="avatar"
-                  className="w-full h-full object-cover"
-                  onError={(e) => { e.currentTarget.style.display = "none"; }}
-                />
-              </div>
+              <Link href="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity p-1 rounded-md">
+                <span className="text-sm font-medium text-gray-700 mr-1">
+                  {user.full_name}
+                </span>
+                <div className="w-9 h-9 rounded-full bg-gray-300 overflow-hidden border border-gray-200">
+                  <img
+                    src={user.avatar_url || "/vendor/avatar.png"}
+                    alt="avatar"
+                    className="w-full h-full object-cover"
+                    fetchPriority="high"
+                    onError={(e) => { e.currentTarget.style.display = "none"; }}
+                  />
+                </div>
+              </Link>
               <button
                 onClick={logout}
                 className="flex flex-col items-center justify-between text-sm itemc font-medium text-red-600 hover:text-red-700 ml-1 cursor-pointer"
@@ -90,11 +93,12 @@ export default function Navbar() {
         {/* --- MOBILE: PROFILE + HAMBURGER --- */}
         <div className="flex md:hidden items-center gap-3">
           {user && (
-            <div className="w-8 h-8 rounded-full bg-gray-300 overflow-hidden">
+            <div className="w-8 h-8 rounded-full bg-gray-300 overflow-hidden border border-gray-200">
               <img
-                src="/vendor/avatar.png"
+                src={user.avatar_url || "/vendor/avatar.png"}
                 alt="avatar"
                 className="w-full h-full object-cover"
+                fetchPriority="high"
                 onError={(e) => { e.currentTarget.style.display = "none"; }}
               />
             </div>
@@ -117,17 +121,18 @@ export default function Navbar() {
       {menuOpen && (
         <div className="md:hidden mt-3 flex flex-col gap-1 border-t border-gray-100 pt-3">
           {user && (
-            <div className="px-2 py-2 flex items-center gap-2 border-b border-gray-100 mb-1">
-              <div className="w-8 h-8 rounded-full bg-gray-300 overflow-hidden">
+            <Link href="/profile" onClick={() => setMenuOpen(false)} className="px-2 py-2 flex items-center gap-2 border-b border-gray-100 mb-1 hover:bg-gray-50 rounded-lg">
+              <div className="w-8 h-8 rounded-full bg-gray-300 overflow-hidden border border-gray-200">
                 <img
-                  src="/vendor/avatar.png"
+                  src={user.avatar_url || "/vendor/avatar.png"}
                   alt="avatar"
                   className="w-full h-full object-cover"
+                  fetchPriority="high"
                   onError={(e) => { e.currentTarget.style.display = "none"; }}
                 />
               </div>
               <span className="text-sm font-medium text-gray-700">{user.full_name}</span>
-            </div>
+            </Link>
           )}
 
           {allowedMenus.map((item) => {

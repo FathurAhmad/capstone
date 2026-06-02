@@ -10,6 +10,7 @@ interface User {
   full_name: string;
   role: string; // "VENDOR", "STAFF", "MANAGER"
   vendor_id: string | null;
+  avatar_url?: string | null;
 }
 
 interface AuthContextType {
