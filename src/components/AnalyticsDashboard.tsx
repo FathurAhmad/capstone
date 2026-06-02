@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Calendar from "react-calendar";
+import { useState, useEffect, useDeferredValue } from "react";
+import dynamic from "next/dynamic";
+const Calendar = dynamic(() => import("react-calendar"), { ssr: false });
 import "react-calendar/dist/Calendar.css";
 import {
   LineChart,
@@ -18,6 +19,8 @@ import {
 import { useAuth } from "@/app/context/authContext";
 import { useRouter } from "next/navigation";
 import ManajemenReviewModal from "./ManajemenReviewModal";
+import toast from "react-hot-toast";
+import ConfirmModal from "./ConfirmModal";
 
 export default function AnalyticsDashboard() {
   const [search, setSearch] = useState("");
@@ -29,12 +32,15 @@ export default function AnalyticsDashboard() {
   // State for analytics aggregates
   const [analytics, setAnalytics] = useState<any>(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(true);
+  const [confirmResetOpen, setConfirmResetOpen] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   // State for dynamic manifests (for table)
   const [manifests, setManifests] = useState<any[]>([]);
   const [loadingManifests, setLoadingManifests] = useState(true);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [reviewManifestId, setReviewManifestId] = useState<string | null>(null);
+  const [confirmLockId, setConfirmLockId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -83,17 +89,11 @@ export default function AnalyticsDashboard() {
     }
   }, [user]);
 
-  const handleLock = async (id: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to lock this manifest? Once locked, you cannot edit it.",
-      )
-    )
-      return;
+  const performLock = async (id: string) => {
     try {
       const res = await fetch(`/api/manifests/${id}/lock`, { method: "PATCH" });
       if (res.ok) {
-        alert("Manifest locked successfully.");
+        toast.success("Manifest locked successfully.");
         // Refresh table
         let url = "/api/manifests";
         if (user?.role === "VENDOR" && user?.vendor_id) {
@@ -103,10 +103,40 @@ export default function AnalyticsDashboard() {
         if (refreshRes.ok) setManifests(await refreshRes.json());
       } else {
         const data = await res.json();
-        alert(data.error || "Failed to lock manifest");
+        toast.error(data.error || "Failed to lock manifest");
       }
     } catch (error) {
-      alert("Server error occurred.");
+      toast.error("Server error occurred.");
+    } finally {
+      setConfirmLockId(null);
+    }
+  };
+
+  const handleResetDatabase = async () => {
+    setIsResetting(true);
+    try {
+      const res = await fetch('/api/admin/reset-db', {
+        method: 'POST',
+      });
+      if (res.ok) {
+        toast.success("Database reset successfully.");
+        // Refresh table
+        let url = "/api/manifests";
+        if (user?.role === "VENDOR" && user?.vendor_id) {
+          url += `?vendor_id=${user.vendor_id}`;
+        }
+        const refreshRes = await fetch(url);
+        if (refreshRes.ok) setManifests(await refreshRes.json());
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Failed to reset database");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Gagal melakukan reset database.');
+    } finally {
+      setIsResetting(false);
+      setConfirmResetOpen(false);
     }
   };
 
@@ -117,10 +147,17 @@ export default function AnalyticsDashboard() {
     return `${d}/${m}/${y}`;
   };
 
-  const filteredManifests =
-    statusFilter === "ALL"
-      ? manifests
-      : manifests.filter((m) => m.status === statusFilter);
+  const deferredSearch = useDeferredValue(search);
+
+  const filteredManifests = manifests.filter((m) => {
+    const matchStatus = statusFilter === "ALL" || m.status === statusFilter;
+    const s = deferredSearch.toLowerCase();
+    const matchSearch =
+      !s ||
+      m.manifest_no?.toLowerCase().includes(s) ||
+      m.vendors?.name?.toLowerCase().includes(s);
+    return matchStatus && matchSearch;
+  });
 
   // Defaults if analytics still loading
   const totalShipments = analytics?.totalShipments || 0;
@@ -134,9 +171,19 @@ export default function AnalyticsDashboard() {
     <div className="w-full">
       {/* Header + Search + Date */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
-          Analytics Overview
-        </h2>
+        <div className="flex items-center gap-4">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+            Analytics Overview
+          </h2>
+          {user?.role === "ADMIN" && (
+            <button
+              onClick={() => setConfirmResetOpen(true)}
+              className="text-xs bg-red-100 text-red-600 px-3 py-1 rounded-full font-bold hover:bg-red-200 transition-colors"
+            >
+              Reset All Data
+            </button>
+          )}
+        </div>
         <div className="flex items-center gap-2 md:gap-3">
           <div className="flex items-center bg-white border border-gray-200 rounded-lg px-3 py-2 gap-2 flex-1 sm:w-64 sm:flex-none shadow-sm">
             <input
@@ -385,7 +432,7 @@ export default function AnalyticsDashboard() {
                             } else if (currentRole === "ADMIN" || currentRole === "MANAGER" || currentRole === "MANAJEMEN") {
                               setReviewManifestId(manifest.id);
                             } else {
-                              alert("Role tidak dikenali: " + user?.role);
+                              toast.error("Role tidak dikenali: " + user?.role);
                             }
                           }}
                           className="w-8 h-8 border border-gray-200 bg-white rounded-full flex items-center justify-center text-gray-500 hover:text-blue-600 hover:border-blue-500 hover:shadow-sm transition-all"
@@ -400,7 +447,7 @@ export default function AnalyticsDashboard() {
                         {manifest.status === "DRAFT" && user?.role === "VENDOR" && (
                           <button
                             title="Lock"
-                            onClick={() => handleLock(manifest.id)}
+                            onClick={() => setConfirmLockId(manifest.id)}
                             className="w-8 h-8 border border-gray-200 bg-white rounded-full flex items-center justify-center text-gray-500 hover:text-orange-500 hover:border-orange-500 hover:shadow-sm transition-all"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -440,6 +487,28 @@ export default function AnalyticsDashboard() {
           }}
         />
       )}
+
+      <ConfirmModal
+        isOpen={!!confirmLockId}
+        title="Lock Manifest"
+        message="Are you sure you want to lock this manifest? Once locked, you cannot edit it."
+        confirmText="Yes, Lock It"
+        onConfirm={() => {
+          if (confirmLockId) performLock(confirmLockId);
+        }}
+        onCancel={() => setConfirmLockId(null)}
+      />
+
+      <ConfirmModal
+        isOpen={confirmResetOpen}
+        title="Reset All Data"
+        message="Are you sure you want to delete ALL data? This cannot be undone."
+        confirmText="Yes, Reset"
+        isDanger={true}
+        onConfirm={handleResetDatabase}
+        onCancel={() => setConfirmResetOpen(false)}
+        isLoading={isResetting}
+      />
     </div>
   );
 }

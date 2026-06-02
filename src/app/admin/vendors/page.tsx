@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import toast from "react-hot-toast";
+import ConfirmModal from "@/components/ConfirmModal";
 
 interface Vendor {
   id: string;
@@ -13,6 +15,9 @@ export default function ManageVendorsPage() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [confirmDeleteName, setConfirmDeleteName] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Form State
   const [vendorCode, setVendorCode] = useState("");
@@ -52,7 +57,7 @@ export default function ManageVendorsPage() {
         })
       });
       if (res.ok) {
-        alert("Vendor successfully added!");
+        toast.success("Vendor successfully added!");
         setVendorCode("");
         setVendorName("");
         setVendorAddress("");
@@ -60,27 +65,37 @@ export default function ManageVendorsPage() {
         fetchVendors();
       } else {
         const data = await res.json();
-        alert(data.error || "Failed to add vendor");
+        toast.error(data.error || "Failed to add vendor");
       }
     } catch (err) {
-      alert("Server error");
+      toast.error("Server error");
     } finally {
       setVendorLoading(false);
     }
   };
 
-  const handleDeleteVendor = async (id: string, name: string) => {
-    if (!confirm(`Apakah Anda yakin ingin menghapus vendor "${name}"?`)) return;
+  const handleDeleteVendor = (id: string, name: string) => {
+    setConfirmDeleteId(id);
+    setConfirmDeleteName(name);
+  };
+
+  const performDelete = async () => {
+    if (!confirmDeleteId) return;
+    setIsDeleting(true);
     try {
-      const res = await fetch(`/api/vendors/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/vendors/${confirmDeleteId}`, { method: "DELETE" });
       if (res.ok) {
+        toast.success("Vendor berhasil dihapus!");
         fetchVendors();
       } else {
         const data = await res.json();
-        alert(data.error || "Gagal menghapus vendor");
+        toast.error(data.error || "Gagal menghapus vendor");
       }
     } catch (err) {
-      alert("Server error");
+      toast.error("Terjadi kesalahan server");
+    } finally {
+      setIsDeleting(false);
+      setConfirmDeleteId(null);
     }
   };
 
@@ -221,6 +236,16 @@ export default function ManageVendorsPage() {
           </div>
         )}
 
+        <ConfirmModal
+          isOpen={!!confirmDeleteId}
+          title="Hapus Vendor"
+          message={`Apakah Anda yakin ingin menghapus vendor "${confirmDeleteName}"?`}
+          confirmText="Hapus"
+          isDanger={true}
+          onConfirm={performDelete}
+          onCancel={() => setConfirmDeleteId(null)}
+          isLoading={isDeleting}
+        />
       </div>
     </div>
   );

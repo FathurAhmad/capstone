@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/app/context/authContext";
+import toast from "react-hot-toast";
 
 interface Props {
   manifestId: string;
@@ -23,7 +24,7 @@ export default function ManajemenReviewModal({ manifestId, onClose }: Props) {
         const data = await res.json();
         setManifest(data);
       } else {
-        alert("Gagal memuat detail manifest.");
+        toast.error("Gagal memuat detail manifest.");
         onClose();
       }
     } catch (error) {
@@ -39,7 +40,7 @@ export default function ManajemenReviewModal({ manifestId, onClose }: Props) {
 
   const handleResolve = async (discrepancyId: string, status: string) => {
     if (!user?.id) {
-      alert("User session not found.");
+      toast.error("User session not found.");
       return;
     }
 
@@ -55,14 +56,15 @@ export default function ManajemenReviewModal({ manifestId, onClose }: Props) {
       });
 
       if (res.ok) {
+        toast.success("Resolusi berhasil disimpan.");
         await fetchManifest();
       } else {
         const data = await res.json();
-        alert(`Gagal resolve: ${data.error}`);
+        toast.error(`Gagal resolve: ${data.error}`);
       }
     } catch (error) {
       console.error("Error resolving discrepancy:", error);
-      alert("Terjadi kesalahan jaringan.");
+      toast.error("Terjadi kesalahan jaringan.");
     } finally {
       setResolvingId(null);
     }

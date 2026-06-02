@@ -6,6 +6,7 @@ import "react-calendar/dist/Calendar.css";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/app/context/authContext";
 import { useParams, useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 type Part = {
   id: string;
@@ -77,7 +78,7 @@ export default function EditShipment() {
             setRows([{ id: 1, part_id: "", qty: "", totalPackages: "", batch_code: "" }]);
           }
         } else {
-          alert("Gagal mengambil data manifest");
+          toast.error("Gagal mengambil data manifest");
           router.push("/vendor/dashboard");
         }
       } catch (error) {
@@ -132,14 +133,14 @@ export default function EditShipment() {
 
       const data = await res.json();
       if (res.ok) {
-        alert("Perubahan berhasil disimpan!");
+        toast.success("Perubahan berhasil disimpan!");
         router.push("/vendor/dashboard");
       } else {
-        alert(data.error || "Terjadi kesalahan saat menyimpan perubahan");
+        toast.error(data.error || "Terjadi kesalahan saat menyimpan perubahan");
       }
     } catch (error) {
       console.error("Error saving manifest:", error);
-      alert("Terjadi kesalahan pada server");
+      toast.error("Terjadi kesalahan pada server");
     }
   };
 

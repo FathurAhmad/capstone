@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
 import Navbar from "@/components/Navbar";
+import toast from "react-hot-toast";
 
 export default function ManifestDetails() {
   const { id } = useParams();
@@ -22,7 +23,7 @@ export default function ManifestDetails() {
           const data = await res.json();
           setManifest(data);
         } else {
-          alert("Gagal memuat detail manifest.");
+          toast.error("Gagal memuat detail manifest.");
           router.push("/vendor/dashboard");
         }
       } catch (error) {
