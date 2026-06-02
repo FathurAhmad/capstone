@@ -18,7 +18,7 @@ export default function ManageUsersPage() {
   // Form State
   const [userFullName, setUserFullName] = useState("");
   const [userEmail, setUserEmail] = useState("");
-  const [userRole, setUserRole] = useState("vendor");
+  const [userRole, setUserRole] = useState("");
   const [userLoading, setUserLoading] = useState(false);
 
   const fetchUsers = async () => {
@@ -49,14 +49,14 @@ export default function ManageUsersPage() {
         body: JSON.stringify({
           full_name: userFullName,
           email: userEmail,
-          role: userRole
-        })
+          role: userRole,
+        }),
       });
       if (res.ok) {
         alert("User successfully added!");
         setUserFullName("");
         setUserEmail("");
-        setUserRole("vendor");
+        setUserRole("");
         setIsModalOpen(false);
         fetchUsers();
       } else {
@@ -88,7 +88,6 @@ export default function ManageUsersPage() {
   return (
     <div className="min-h-screen bg-[#f0f4f8]">
       <div className="px-4 md:px-8 py-4 md:py-8 max-w-6xl mx-auto">
-        
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Manage Users</h1>
@@ -96,8 +95,18 @@ export default function ManageUsersPage() {
             onClick={() => setIsModalOpen(true)}
             className="bg-[#1a3a7c] text-white font-medium px-4 py-2 rounded-lg hover:bg-[#122859] transition-colors flex items-center gap-2"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
             </svg>
             Add New User
           </button>
@@ -106,7 +115,9 @@ export default function ManageUsersPage() {
         {/* Data Table */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           {loading ? (
-            <div className="p-8 text-center text-gray-500">Loading users...</div>
+            <div className="p-8 text-center text-gray-500">
+              Loading users...
+            </div>
           ) : users.length === 0 ? (
             <div className="p-8 text-center text-gray-500">No users found.</div>
           ) : (
@@ -123,28 +134,50 @@ export default function ManageUsersPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {users.map((u) => (
-                    <tr key={u.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 font-medium text-gray-900">{u.full_name}</td>
+                    <tr
+                      key={u.id}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-6 py-4 font-medium text-gray-900">
+                        {u.full_name}
+                      </td>
                       <td className="px-6 py-4">{u.email}</td>
                       <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          u.role === 'admin' ? 'bg-red-100 text-red-700' :
-                          u.role === 'manager' ? 'bg-purple-100 text-purple-700' :
-                          u.role === 'staff' ? 'bg-blue-100 text-blue-700' :
-                          'bg-green-100 text-green-700'
-                        }`}>
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            u.role === "admin"
+                              ? "bg-red-100 text-red-700"
+                              : u.role === "manager"
+                                ? "bg-purple-100 text-purple-700"
+                                : u.role === "staff"
+                                  ? "bg-blue-100 text-blue-700"
+                                  : "bg-green-100 text-green-700"
+                          }`}
+                        >
                           {u.role.toUpperCase()}
                         </span>
                       </td>
-                      <td className="px-6 py-4">{new Date(u.updated_at).toLocaleDateString()}</td>
+                      <td className="px-6 py-4">
+                        {new Date(u.updated_at).toLocaleDateString()}
+                      </td>
                       <td className="px-6 py-4 text-center">
                         <button
                           onClick={() => handleDeleteUser(u.id, u.full_name)}
                           className="text-red-400 hover:text-red-600 transition-colors p-1"
                           title="Delete user"
                         >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
                           </svg>
                         </button>
                       </td>
@@ -161,21 +194,35 @@ export default function ManageUsersPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm px-4">
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-                <h2 className="text-xl font-semibold text-gray-800">Create New User</h2>
+                <h2 className="text-xl font-semibold text-gray-800">
+                  Create New User
+                </h2>
                 <button
                   onClick={() => setIsModalOpen(false)}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
-              
+
               <div className="p-6">
                 <form onSubmit={handleAddUser} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Full Name
+                    </label>
                     <input
                       type="text"
                       required
@@ -186,7 +233,9 @@ export default function ManageUsersPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email
+                    </label>
                     <input
                       type="email"
                       required
@@ -197,19 +246,25 @@ export default function ManageUsersPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Role
+                    </label>
                     <select
                       value={userRole}
                       onChange={(e) => setUserRole(e.target.value)}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3a7c] text-gray-700 text-sm"
+                      required
                     >
+                      <option value="" disabled>
+                        -- Select Role --
+                      </option>
                       <option value="admin">Admin</option>
-                      <option value="manajemen">Manajemen</option>
-                      <option value="petugas">Petugas</option>
+                      <option value="manager">Manager</option>
+                      <option value="staff">Staff</option>
                       <option value="vendor">Vendor</option>
                     </select>
                   </div>
-                  
+
                   <div className="pt-4 flex gap-3">
                     <button
                       type="button"
@@ -231,7 +286,6 @@ export default function ManageUsersPage() {
             </div>
           </div>
         )}
-
       </div>
     </div>
   );
