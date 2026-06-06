@@ -1,17 +1,46 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export async function POST(request: Request) {
   try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('access_token')?.value || request.headers.get('Authorization')?.replace('Bearer ', '');
+
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Ambil vendor_id asli berdasarkan user login
+    const profile = await prisma.profiles.findUnique({ where: { id: user.id } });
+    if (!profile || !profile.vendor_id) {
+      return NextResponse.json({ error: 'Akses ditolak. Anda bukan vendor.' }, { status: 403 });
+    }
+    
+    const secureVendorId = profile.vendor_id;
+
     const body = await request.json();
         // Destructuring data yang dikirim dari Frontend / Postman
     const { 
-      vendor_id, 
+      vendor_id: spoofed_vendor_id, // Abaikan vendor_id dari body untuk keamanan BOLA
       driver_name, 
       vehicle_plate, 
       estimated_arrival, // Perlu dibuatkan jalur khusus agar menerima payload data tanggal dari fe
       items // Ini adalah array of objects (daftar barang)
     } = body;
+
+    const vendor_id = secureVendorId; // Ganti dengan vendor_id asli dari database
 
     // Validasi Dasar
     if (!vendor_id || !items || !driver_name || !vehicle_plate || items.length === 0) {
