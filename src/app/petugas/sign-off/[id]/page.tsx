@@ -60,6 +60,7 @@ export default function SignOffPage() {
   }, [id]);
 
   const handleSubmit = async () => {
+    if (isSubmitting) return;
     setErrorMsg("");
 
     const driverSig = driverSigRef.current?.getSignatureBase64();

@@ -23,6 +23,7 @@ export default function WorkspaceScannerPage() {
   const [isDamaged, setIsDamaged] = useState(false);
   const [photoBase64, setPhotoBase64] = useState<string | null>(null);
   const [remark, setRemark] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   
   // Feedback state
   const [successMsg, setSuccessMsg] = useState("");
@@ -83,7 +84,7 @@ export default function WorkspaceScannerPage() {
   };
 
   const handleSaveScan = async () => {
-    if (!scannedItem || !sessionId) return;
+    if (isSaving || !scannedItem || !sessionId) return;
     
     const qty = typeof actualQty === "number" ? actualQty : 0;
     
@@ -94,6 +95,7 @@ export default function WorkspaceScannerPage() {
       return;
     }
 
+    setIsSaving(true);
     try {
       const db = await getDB();
       if (!db) return;
@@ -142,6 +144,8 @@ export default function WorkspaceScannerPage() {
     } catch (err) {
       console.error(err);
       setErrorMsg("Gagal menyimpan data ke IndexedDB.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -280,6 +284,7 @@ export default function WorkspaceScannerPage() {
                   <input 
                     type="text" 
                     placeholder="Catatan tambahan (Opsional)" 
+                    maxLength={500}
                     value={remark}
                     onChange={(e) => setRemark(e.target.value)}
                     className="w-full p-3 border border-orange-200 rounded-lg text-sm"
@@ -290,9 +295,10 @@ export default function WorkspaceScannerPage() {
               {/* Tombol Simpan */}
               <button 
                 onClick={handleSaveScan}
-                className="w-full h-14 bg-[#1a3a7c] text-white text-lg font-bold rounded-xl shadow-lg hover:bg-[#122859] active:scale-95 transition-all"
+                disabled={isSaving}
+                className="w-full h-14 bg-[#1a3a7c] text-white text-lg font-bold rounded-xl shadow-lg hover:bg-[#122859] active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100"
               >
-                Simpan Hasil Scan
+                {isSaving ? "Menyimpan..." : "Simpan Hasil Scan"}
               </button>
             </div>
           </div>

@@ -30,6 +30,7 @@ export default function NewShipment() {
   const [vehiclePlate, setVehiclePlate] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showCalendar, setShowCalendar] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
   // State untuk menyimpan daftar parts dari API
@@ -81,7 +82,56 @@ export default function NewShipment() {
     setRows(rows.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
   };
 
+  const validateForm = (isDraft: boolean) => {
+    if (!isDraft) {
+      if (!driverName.trim()) {
+        toast.error("Driver Name is required.");
+        return false;
+      }
+      if (!vehiclePlate.trim()) {
+        toast.error("Vehicle Plate Number is required.");
+        return false;
+      }
+    }
+
+    if (rows.length === 0) {
+      toast.error("At least one part must be added.");
+      return false;
+    }
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row.part_id) {
+        toast.error(`Row ${i + 1}: Part Name must be selected.`);
+        return false;
+      }
+
+      if (!isDraft || row.qty) {
+        if (!row.qty || parseInt(row.qty) <= 0) {
+          toast.error(`Row ${i + 1}: Package Qty must be greater than 0.`);
+          return false;
+        }
+      }
+      if (!isDraft || row.totalPackages) {
+        if (!row.totalPackages || parseInt(row.totalPackages) <= 0) {
+          toast.error(`Row ${i + 1}: Total Boxes must be greater than 0.`);
+          return false;
+        }
+      }
+      if (!isDraft) {
+        if (!row.batch_code.trim()) {
+          toast.error(`Row ${i + 1}: Batch Code is required.`);
+          return false;
+        }
+      }
+    }
+    return true;
+  };
+
   const handleDraft = async () => {
+    if (isSubmitting) return;
+    if (!validateForm(true)) return;
+    setIsSubmitting(true);
     try {
       const payload = {
         // Gunakan user?.id jika ada, jika tidak fallback ke ID test
@@ -112,10 +162,15 @@ export default function NewShipment() {
     } catch (error) {
       console.error("Error submitting manifest:", error);
       toast.error("Terjadi kesalahan pada server");
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
   const handleSubmit = async () => {
+    if (isSubmitting) return;
+    if (!validateForm(false)) return;
+    setIsSubmitting(true);
     try {
       const payload = {
         // Gunakan user?.id jika ada, jika tidak fallback ke ID test
@@ -147,6 +202,8 @@ export default function NewShipment() {
     } catch (error) {
       console.error("Error submitting manifest:", error);
       toast.error("Terjadi kesalahan pada server");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -290,11 +347,19 @@ export default function NewShipment() {
               + Add Column
             </button>
             <div className="flex gap-2">
-              <button onClick={handleDraft} className="border-2 border-[#1a3a7c] text-[#1a3a7c] font-semibold px-6 py-2.5 rounded-lg hover:bg-blue-50 text-sm w-full sm:w-auto">
+              <button 
+                onClick={handleDraft} 
+                disabled={isSubmitting}
+                className="border-2 border-[#1a3a7c] text-[#1a3a7c] font-semibold px-6 py-2.5 rounded-lg hover:bg-blue-50 text-sm w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 Save As Draft
               </button>
-              <button onClick={handleSubmit} className="bg-[#1a3a7c] text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-[#152f66] text-sm w-full sm:w-auto">
-                Submit & Generate QR Labels
+              <button 
+                onClick={handleSubmit} 
+                disabled={isSubmitting}
+                className="bg-[#1a3a7c] text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-[#152f66] text-sm w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? "Submitting..." : "Submit & Generate QR Labels"}
               </button>
             </div>
           </div>
