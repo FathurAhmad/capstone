@@ -45,6 +45,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing session_id or manifest_id" }, { status: 400 });
     }
 
+    // --- Validasi Poin 3: Payload & DoS Protection ---
+    if (!Array.isArray(scan_logs) || scan_logs.length > 500) {
+      return NextResponse.json({ error: "Payload scan_logs tidak valid atau melebihi batas (maks 500 item)" }, { status: 400 });
+    }
+
+    for (const log of scan_logs) {
+      if (typeof log.actual_qty !== 'number' || log.actual_qty < 0 || typeof log.expected_qty !== 'number') {
+        return NextResponse.json({ error: "Tipe data kuantitas tidak valid. Harus berupa angka positif." }, { status: 400 });
+      }
+    }
+
+    // --- Validasi Poin 5: Logical Flaw pada Relasi Data ---
+    // Pastikan part_id yang dikirim benar-benar ada di dalam manifest_items untuk manifest_id ini
+    const validManifestItems = await prisma.manifest_items.findMany({
+      where: { manifest_id: manifest_id },
+      select: { part_id: true }
+    });
+    
+    const validPartIds = new Set(validManifestItems.map(item => item.part_id));
+
+    for (const log of scan_logs) {
+      if (!validPartIds.has(log.part_id)) {
+        return NextResponse.json({ error: `Terdapat barang ilegal! Part ID ${log.part_id} tidak terdaftar pada manifest ini.` }, { status: 400 });
+      }
+    }
+
     // 1. Upload Signatures (Driver & Staff)
     let driverSigUrl = null;
     let staffSigUrl = null;
@@ -128,20 +154,46 @@ export async function POST(request: Request) {
         // C. Otomatisasi Tabel Discrepancies
         if (log.actual_qty !== log.expected_qty || log.scan_status !== 'MATCH') {
           hasDiscrepancy = true;
-          const variance = log.actual_qty - log.expected_qty;
-          const discrepancyType = variance < 0 ? 'MISSING' : (variance > 0 ? 'OVER' : 'DAMAGED');
           
-          await tx.discrepancies.create({
-            data: {
+          // Cari apakah sudah ada discrepancy untuk part ini di manifest ini (mencegah duplikasi dari concurrent scan)
+          const existingDisc = await tx.discrepancies.findFirst({
+            where: {
               manifest_id: manifest_id,
               part_id: log.part_id,
-              expected_qty: log.expected_qty,
-              actual_qty: log.actual_qty,
-              variance: variance,
-              discrepancy_type: discrepancyType,
-              resolution_status: 'PENDING',
             }
           });
+
+          if (existingDisc) {
+            // Jika sudah ada, tambahkan (aggregate) actual_qty
+            const newActualQty = existingDisc.actual_qty + log.actual_qty;
+            const newVariance = newActualQty - log.expected_qty;
+            const newType = newVariance < 0 ? 'MISSING' : (newVariance > 0 ? 'OVER' : 'DAMAGED');
+
+            await tx.discrepancies.update({
+              where: { id: existingDisc.id },
+              data: {
+                actual_qty: newActualQty,
+                variance: newVariance,
+                discrepancy_type: newType
+              }
+            });
+          } else {
+            // Buat baru jika belum ada
+            const variance = log.actual_qty - log.expected_qty;
+            const discrepancyType = variance < 0 ? 'MISSING' : (variance > 0 ? 'OVER' : 'DAMAGED');
+            
+            await tx.discrepancies.create({
+              data: {
+                manifest_id: manifest_id,
+                part_id: log.part_id,
+                expected_qty: log.expected_qty,
+                actual_qty: log.actual_qty,
+                variance: variance,
+                discrepancy_type: discrepancyType,
+                resolution_status: 'PENDING',
+              }
+            });
+          }
         }
       }
 
