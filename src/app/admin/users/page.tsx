@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import useSWR from "swr";
+import { fetcher } from "@/lib/fetcher";
 import toast from "react-hot-toast";
 import ConfirmModal from "@/components/ConfirmModal";
 import { useAuth } from "@/app/context/authContext";
@@ -17,8 +19,9 @@ interface User {
 export default function ManageUsersPage() {
   const { user: activeUser } = useAuth();
   
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: usersData, isLoading: loading, mutate } = useSWR("/api/users", fetcher);
+  const users: User[] = usersData || [];
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   // Pagination state
@@ -51,24 +54,6 @@ export default function ManageUsersPage() {
   const [userRole, setUserRole] = useState("");
   const [userLoading, setUserLoading] = useState(false);
 
-  const fetchUsers = async () => {
-    try {
-      const res = await fetch("/api/users");
-      const data = await res.json();
-      if (res.ok) {
-        setUsers(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch users", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setUserLoading(true);
@@ -88,7 +73,7 @@ export default function ManageUsersPage() {
         setUserEmail("");
         setUserRole("");
         setIsModalOpen(false);
-        fetchUsers();
+        mutate();
       } else {
         const data = await res.json();
         toast.error(data.error || "Failed to add user");
@@ -150,7 +135,7 @@ export default function ManageUsersPage() {
       const res = await fetch(`/api/users/${confirmDeleteId}`, { method: "DELETE" });
       if (res.ok) {
         toast.success("User berhasil dihapus!");
-        fetchUsers();
+        mutate();
       } else {
         const data = await res.json();
         toast.error(data.error || "Gagal menghapus user");
@@ -183,7 +168,7 @@ export default function ManageUsersPage() {
       if (res.ok) {
         toast.success("Role berhasil diperbarui!");
         setRoleModalOpen(false);
-        fetchUsers();
+        mutate();
       } else {
         const data = await res.json();
         toast.error(data.error || "Gagal memperbarui role");

@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { convertServerPatchToFullTree } from "next/dist/client/components/segment-cache/navigation";
+import { useAuth } from "@/app/context/authContext";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { setSession } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -42,12 +44,9 @@ export default function LoginPage() {
         return;
       }
 
-      // 🛑 1. SIMPAN TOKEN KE LOCAL STORAGE AGAR TIDAK LUPA
-      // (Asumsi backend merespons dengan data.session.access_token)
-      if (data.session?.access_token) {
-        localStorage.setItem("access_token", data.session.access_token);
-        // Simpan ke cookie agar bisa dibaca oleh middleware.ts
-        document.cookie = `access_token=${data.session.access_token}; path=/; max-age=86400;`;
+      // 🛑 1. SIMPAN TOKEN DAN USER KE CONTEXT GLOBAL
+      if (data.session?.access_token && data.user) {
+        setSession(data.user, data.session.access_token);
       }
 
       // 🛑 2. PASTIKAN MAP ROLE SESUAI DATABASE (Contoh disamakan ke Uppercase)
@@ -92,6 +91,7 @@ export default function LoginPage() {
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                 className="flex-1 outline-none text-sm text-gray-700 w-full"
               />
             </div>
@@ -108,6 +108,7 @@ export default function LoginPage() {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                 className="flex-1 outline-none text-sm text-gray-700 w-full"
               />
               <button

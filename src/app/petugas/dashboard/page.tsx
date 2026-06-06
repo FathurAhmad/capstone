@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useDeferredValue } from "react";
+import useSWR from "swr";
+import { fetcher } from "@/lib/fetcher";
 import dynamic from "next/dynamic";
 const Calendar = dynamic(() => import("react-calendar"), { ssr: false });
 import "react-calendar/dist/Calendar.css";
@@ -39,30 +41,8 @@ export default function PetugasDashboard() {
     setCurrentPage(1);
   }, [search, selectedDate]);
 
-  const [rawManifests, setRawManifests] = useState<any[]>([]);
-  const [manifests, setManifests] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchManifests = async () => {
-      try {
-        // Ambil semua manifest
-        const res = await fetch("/api/manifests");
-        const data = await res.json();
-
-        // Filter hanya manifes yang BUKAN DRAFT
-        const pending = data.filter((m: any) => m.status !== "DRAFT");
-        setRawManifests(pending);
-        setManifests(pending);
-      } catch (error) {
-        console.error("Failed to fetch manifests", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchManifests();
-  }, []);
+  const { data, isLoading: loading } = useSWR("/api/manifests", fetcher);
+  const manifests = data ? data.filter((m: any) => m.status !== "DRAFT") : [];
 
   const formatDate = (date: Date | null) => {
     if (!date) return "Filter by Date";
@@ -72,7 +52,7 @@ export default function PetugasDashboard() {
     return `${d}/${m}/${y}`;
   };
 
-  const filteredManifests = manifests.filter((m) => {
+  const filteredManifests = manifests.filter((m: any) => {
     const s = deferredSearch.toLowerCase();
     const matchSearch =
       !s ||

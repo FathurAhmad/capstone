@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import useSWR from "swr";
+import { fetcher } from "@/lib/fetcher";
 import toast from "react-hot-toast";
 import ConfirmModal from "@/components/ConfirmModal";
 import Pagination from "@/components/Pagination";
@@ -13,8 +15,9 @@ interface Vendor {
 }
 
 export default function ManageVendorsPage() {
-  const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: vendorsData, isLoading: loading, mutate } = useSWR("/api/vendors", fetcher);
+  const vendors: Vendor[] = vendorsData || [];
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmDeleteName, setConfirmDeleteName] = useState("");
@@ -29,24 +32,6 @@ export default function ManageVendorsPage() {
   const [vendorName, setVendorName] = useState("");
   const [vendorAddress, setVendorAddress] = useState("");
   const [vendorLoading, setVendorLoading] = useState(false);
-
-  const fetchVendors = async () => {
-    try {
-      const res = await fetch("/api/vendors");
-      const data = await res.json();
-      if (res.ok) {
-        setVendors(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch vendors", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchVendors();
-  }, []);
 
   const handleAddVendor = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +52,7 @@ export default function ManageVendorsPage() {
         setVendorName("");
         setVendorAddress("");
         setIsModalOpen(false);
-        fetchVendors();
+        mutate();
       } else {
         const data = await res.json();
         toast.error(data.error || "Failed to add vendor");
@@ -91,7 +76,7 @@ export default function ManageVendorsPage() {
       const res = await fetch(`/api/vendors/${confirmDeleteId}`, { method: "DELETE" });
       if (res.ok) {
         toast.success("Vendor berhasil dihapus!");
-        fetchVendors();
+        mutate();
       } else {
         const data = await res.json();
         toast.error(data.error || "Gagal menghapus vendor");

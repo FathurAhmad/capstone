@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useDeferredValue } from "react";
+import useSWR from "swr";
 import dynamic from "next/dynamic";
 const Calendar = dynamic(() => import("react-calendar"), { ssr: false });
 import "react-calendar/dist/Calendar.css";
@@ -23,6 +24,16 @@ import toast from "react-hot-toast";
 import ConfirmModal from "./ConfirmModal";
 import Pagination from "./Pagination";
 
+const fetcher = (url: string) => {
+  const token = localStorage.getItem("access_token");
+  return fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  }).then((res) => {
+    if (!res.ok) throw new Error("An error occurred while fetching the data.");
+    return res.json();
+  });
+};
+
 export default function AnalyticsDashboard() {
   const [search, setSearch] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -30,86 +41,49 @@ export default function AnalyticsDashboard() {
   const { user } = useAuth();
   const router = useRouter();
 
-  // State for analytics aggregates
-  const [analytics, setAnalytics] = useState<any>(null);
-  const [loadingAnalytics, setLoadingAnalytics] = useState(true);
-  const [confirmResetOpen, setConfirmResetOpen] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
-
-  // State for dynamic manifests (for table)
-  const [manifests, setManifests] = useState<any[]>([]);
-  const [loadingManifests, setLoadingManifests] = useState(true);
-  const [statusFilter, setStatusFilter] = useState("ALL");
-  const [reviewManifestId, setReviewManifestId] = useState<string | null>(null);
-  const [confirmLockId, setConfirmLockId] = useState<string | null>(null);
-
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  // Restored States
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [reviewManifestId, setReviewManifestId] = useState<string | null>(null);
+  const [confirmLockId, setConfirmLockId] = useState<string | null>(null);
+  const [confirmResetOpen, setConfirmResetOpen] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [search, statusFilter, selectedDate]);
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      const token = localStorage.getItem("access_token");
-      if (!token) return;
+  // SWR Hooks
+  const { 
+    data: analytics, 
+    isLoading: loadingAnalytics, 
+    mutate: mutateAnalytics 
+  } = useSWR(user ? "/api/dashboard/analytics" : null, fetcher);
 
-      try {
-        setLoadingAnalytics(true);
-        const res = await fetch("/api/dashboard/analytics", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setAnalytics(data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch analytics", error);
-      } finally {
-        setLoadingAnalytics(false);
-      }
-    };
+  let manifestUrl = "/api/manifests";
+  if (user?.role?.toUpperCase() === "VENDOR" && user?.vendor_id) {
+    manifestUrl += `?vendor_id=${user.vendor_id}`;
+  }
 
-    const fetchRecentManifests = async () => {
-      let url = "/api/manifests";
-      if (user?.role?.toUpperCase() === "VENDOR" && user?.vendor_id) {
-        url += `?vendor_id=${user.vendor_id}`;
-      }
-      
-      try {
-        setLoadingManifests(true);
-        const res = await fetch(url);
-        if (res.ok) {
-          const data = await res.json();
-          setManifests(data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch manifests", error);
-      } finally {
-        setLoadingManifests(false);
-      }
-    };
+  const { 
+    data: manifestsData, 
+    isLoading: loadingManifests, 
+    mutate: mutateManifests 
+  } = useSWR(user ? manifestUrl : null, fetcher);
 
-    if (user) {
-      fetchDashboardData();
-      fetchRecentManifests();
-    }
-  }, [user]);
+  const manifests = manifestsData || [];
 
   const performLock = async (id: string) => {
     try {
       const res = await fetch(`/api/manifests/${id}/lock`, { method: "PATCH" });
       if (res.ok) {
         toast.success("Manifest locked successfully.");
-        // Refresh table
-        let url = "/api/manifests";
-        if (user?.role?.toUpperCase() === "VENDOR" && user?.vendor_id) {
-          url += `?vendor_id=${user.vendor_id}`;
-        }
-        const refreshRes = await fetch(url);
-        if (refreshRes.ok) setManifests(await refreshRes.json());
+        // Refresh data using SWR mutate
+        mutateManifests();
+        mutateAnalytics();
       } else {
         const data = await res.json();
         toast.error(data.error || "Failed to lock manifest");
@@ -129,13 +103,8 @@ export default function AnalyticsDashboard() {
       });
       if (res.ok) {
         toast.success("Database reset successfully.");
-        // Refresh table
-        let url = "/api/manifests";
-        if (user?.role?.toUpperCase() === "VENDOR" && user?.vendor_id) {
-          url += `?vendor_id=${user.vendor_id}`;
-        }
-        const refreshRes = await fetch(url);
-        if (refreshRes.ok) setManifests(await refreshRes.json());
+        mutateManifests();
+        mutateAnalytics();
       } else {
         const data = await res.json();
         toast.error(data.error || "Failed to reset database");
@@ -159,7 +128,7 @@ export default function AnalyticsDashboard() {
 
   const deferredSearch = useDeferredValue(search);
 
-  const filteredManifests = manifests.filter((m) => {
+  const filteredManifests = manifests.filter((m: any) => {
     const matchStatus = statusFilter === "ALL" || m.status === statusFilter;
     const s = deferredSearch.toLowerCase();
     const matchSearch =
@@ -434,7 +403,7 @@ export default function AnalyticsDashboard() {
                   </td>
                 </tr>
               ) : (
-                currentManifests.map((manifest) => (
+                currentManifests.map((manifest: any) => (
                   <tr key={manifest.id} className="border-b border-gray-50 hover:bg-blue-50/30 transition-colors">
                     <td className="py-3 px-2 text-gray-800 font-bold">
                       {manifest.manifest_number}
@@ -543,20 +512,8 @@ export default function AnalyticsDashboard() {
           manifestId={reviewManifestId}
           onClose={() => {
             setReviewManifestId(null);
-            // Optionally refresh the dashboard manifests to get new statuses
-            const fetchRecentManifests = async () => {
-              const token = localStorage.getItem("access_token");
-              if (!token) return;
-              let url = "/api/manifests";
-              if (user?.role === "VENDOR" && user?.vendor_id) {
-                url += `?vendor_id=${user.vendor_id}`;
-              }
-              const res = await fetch(url);
-              if (res.ok) {
-                setManifests(await res.json());
-              }
-            };
-            fetchRecentManifests();
+            mutateManifests();
+            mutateAnalytics();
           }}
         />
       )}

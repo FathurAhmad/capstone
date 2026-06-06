@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import useSWR from "swr";
+import { fetcher } from "@/lib/fetcher";
 import toast from "react-hot-toast";
 import ConfirmModal from "@/components/ConfirmModal";
 import Pagination from "@/components/Pagination";
@@ -13,8 +15,9 @@ interface Part {
 }
 
 export default function ManagePartsPage() {
-  const [parts, setParts] = useState<Part[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: partsData, isLoading: loading, mutate } = useSWR("/api/parts", fetcher);
+  const parts: Part[] = partsData || [];
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmDeleteName, setConfirmDeleteName] = useState("");
@@ -29,24 +32,6 @@ export default function ManagePartsPage() {
   const [partName, setPartName] = useState("");
   const [partUnit, setPartUnit] = useState("pcs");
   const [partLoading, setPartLoading] = useState(false);
-
-  const fetchParts = async () => {
-    try {
-      const res = await fetch("/api/parts");
-      const data = await res.json();
-      if (res.ok) {
-        setParts(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch parts", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchParts();
-  }, []);
 
   const handleAddPart = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +52,7 @@ export default function ManagePartsPage() {
         setPartName("");
         setPartUnit("pcs");
         setIsModalOpen(false);
-        fetchParts();
+        mutate();
       } else {
         const data = await res.json();
         toast.error(data.error || "Failed to add part");
@@ -91,7 +76,7 @@ export default function ManagePartsPage() {
       const res = await fetch(`/api/parts/${confirmDeleteId}`, { method: "DELETE" });
       if (res.ok) {
         toast.success("Part berhasil dihapus!");
-        fetchParts();
+        mutate();
       } else {
         const data = await res.json();
         toast.error(data.error || "Gagal menghapus part");
