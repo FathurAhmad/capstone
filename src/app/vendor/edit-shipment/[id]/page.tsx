@@ -7,6 +7,7 @@ import Navbar from "@/components/Navbar";
 import { useAuth } from "@/app/context/authContext";
 import { useParams, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import ConfirmModal from "@/components/ConfirmModal";
 
 type Part = {
   id: string;
@@ -36,6 +37,8 @@ export default function EditShipment() {
   const [partsList, setPartsList] = useState<Part[]>([]);
   const [rows, setRows] = useState<ManifestRowUpdated[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [confirmLockOpen, setConfirmLockOpen] = useState(false);
 
   useEffect(() => {
     const fetchParts = async () => {
@@ -110,7 +113,8 @@ export default function EditShipment() {
     setRows(rows.map((r) => (r.id === rowId ? { ...r, [field]: value } : r)));
   };
 
-  const handleSave = async () => {
+  const handleSave = async (shouldLock = false) => {
+    setIsSaving(true);
     try {
       const payload = {
         vendor_id: user?.vendor_id,
@@ -133,14 +137,31 @@ export default function EditShipment() {
 
       const data = await res.json();
       if (res.ok) {
-        toast.success("Perubahan berhasil disimpan!");
+        if (shouldLock) {
+          const lockRes = await fetch(`/api/manifests/${id}/lock`, { method: "PATCH" });
+          if (!lockRes.ok) {
+            const lockData = await lockRes.json();
+            toast.error(lockData.error || "Gagal mengunci manifest");
+            setIsSaving(false);
+            setConfirmLockOpen(false);
+            return;
+          }
+          toast.success("Manifest berhasil disimpan dan dikunci!");
+        } else {
+          toast.success("Perubahan berhasil disimpan!");
+        }
+        setConfirmLockOpen(false);
         router.push("/vendor/dashboard");
       } else {
         toast.error(data.error || "Terjadi kesalahan saat menyimpan perubahan");
+        setIsSaving(false);
+        setConfirmLockOpen(false);
       }
     } catch (error) {
       console.error("Error saving manifest:", error);
       toast.error("Terjadi kesalahan pada server");
+      setIsSaving(false);
+      setConfirmLockOpen(false);
     }
   };
 
@@ -286,17 +307,33 @@ export default function EditShipment() {
             <button onClick={addRow} className="border-2 border-[#1a3a7c] text-[#1a3a7c] font-semibold px-6 py-2.5 rounded-lg hover:bg-blue-50 text-sm w-full sm:w-auto">
               + Add Column
             </button>
-            <div className="flex gap-2">
-              <button onClick={() => router.push("/vendor/dashboard")} className="border-2 border-gray-300 text-gray-600 font-semibold px-6 py-2.5 rounded-lg hover:bg-gray-50 text-sm w-full sm:w-auto">
+            <div className="flex flex-wrap sm:flex-nowrap gap-2">
+              <button disabled={isSaving} onClick={() => router.push("/vendor/dashboard")} className="border-2 border-gray-300 text-gray-600 font-semibold px-6 py-2.5 rounded-lg hover:bg-gray-50 text-sm w-full sm:w-auto disabled:opacity-50">
                 Cancel
               </button>
-              <button onClick={handleSave} className="bg-[#1a3a7c] text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-[#152f66] text-sm w-full sm:w-auto">
-                Save Changes
+              <button disabled={isSaving} onClick={() => handleSave(false)} className="bg-white border-2 border-[#1a3a7c] text-[#1a3a7c] font-semibold px-6 py-2.5 rounded-lg hover:bg-blue-50 text-sm w-full sm:w-auto disabled:opacity-50 flex items-center justify-center gap-2">
+                {isSaving ? "Saving..." : "Save Draft"}
+              </button>
+              <button disabled={isSaving} onClick={() => setConfirmLockOpen(true)} className="bg-[#1a3a7c] text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-[#152f66] text-sm w-full sm:w-auto flex items-center gap-2 justify-center disabled:opacity-50">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                Save & Lock
               </button>
             </div>
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={confirmLockOpen}
+        title="Kunci Manifest"
+        message="Apakah anda yakin untuk mengunci manifest ini? Setelah dikunci, data tidak dapat diubah lagi."
+        confirmText="Ya, Kunci Manifest"
+        onConfirm={() => handleSave(true)}
+        onCancel={() => setConfirmLockOpen(false)}
+        isLoading={isSaving}
+      />
     </div>
   );
 }

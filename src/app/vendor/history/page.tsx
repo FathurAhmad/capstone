@@ -6,6 +6,7 @@ import "react-calendar/dist/Calendar.css";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/app/context/authContext";
 import ManajemenReviewModal from "@/components/ManajemenReviewModal";
+import Pagination from "@/components/Pagination";
 
 type Shipment = {
   id: string;
@@ -25,6 +26,14 @@ export default function VendorHistory() {
   const { user } = useAuth();
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedDate]);
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -69,6 +78,12 @@ export default function VendorHistory() {
     const y = date.getFullYear().toString().slice(-2);
     return `${d}/${m}/${y}`;
   };
+
+  const totalPages = Math.ceil(shipments.length / itemsPerPage);
+  const currentShipments = shipments.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   return (
     <div className="min-h-screen bg-[#f0f4f8]">
@@ -120,7 +135,7 @@ export default function VendorHistory() {
                     <td colSpan={6} className="text-center py-8 text-gray-500">No shipment history found.</td>
                   </tr>
                 ) : (
-                  shipments.map((s, i) => (
+                  currentShipments.map((s, i) => (
                     <tr key={i} className="border-b border-gray-100">
                       <td className="text-center py-3 text-gray-600 px-2">{s.id}</td>
                       <td className="text-center py-3 text-gray-600 px-2">{s.date}</td>
@@ -150,6 +165,13 @@ export default function VendorHistory() {
               </tbody>
             </table>
           </div>
+          {shipments.length > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          )}
         </div>
       </div>
 

@@ -21,10 +21,11 @@ import { useRouter } from "next/navigation";
 import ManajemenReviewModal from "./ManajemenReviewModal";
 import toast from "react-hot-toast";
 import ConfirmModal from "./ConfirmModal";
+import Pagination from "./Pagination";
 
 export default function AnalyticsDashboard() {
   const [search, setSearch] = useState("");
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
@@ -41,6 +42,14 @@ export default function AnalyticsDashboard() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [reviewManifestId, setReviewManifestId] = useState<string | null>(null);
   const [confirmLockId, setConfirmLockId] = useState<string | null>(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter, selectedDate]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -65,7 +74,7 @@ export default function AnalyticsDashboard() {
 
     const fetchRecentManifests = async () => {
       let url = "/api/manifests";
-      if (user?.role === "VENDOR" && user?.vendor_id) {
+      if (user?.role?.toUpperCase() === "VENDOR" && user?.vendor_id) {
         url += `?vendor_id=${user.vendor_id}`;
       }
       
@@ -96,7 +105,7 @@ export default function AnalyticsDashboard() {
         toast.success("Manifest locked successfully.");
         // Refresh table
         let url = "/api/manifests";
-        if (user?.role === "VENDOR" && user?.vendor_id) {
+        if (user?.role?.toUpperCase() === "VENDOR" && user?.vendor_id) {
           url += `?vendor_id=${user.vendor_id}`;
         }
         const refreshRes = await fetch(url);
@@ -122,7 +131,7 @@ export default function AnalyticsDashboard() {
         toast.success("Database reset successfully.");
         // Refresh table
         let url = "/api/manifests";
-        if (user?.role === "VENDOR" && user?.vendor_id) {
+        if (user?.role?.toUpperCase() === "VENDOR" && user?.vendor_id) {
           url += `?vendor_id=${user.vendor_id}`;
         }
         const refreshRes = await fetch(url);
@@ -140,7 +149,8 @@ export default function AnalyticsDashboard() {
     }
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | null) => {
+    if (!date) return "Filter by Date";
     const d = date.getDate().toString().padStart(2, "0");
     const m = (date.getMonth() + 1).toString().padStart(2, "0");
     const y = date.getFullYear().toString().slice(-2);
@@ -154,10 +164,26 @@ export default function AnalyticsDashboard() {
     const s = deferredSearch.toLowerCase();
     const matchSearch =
       !s ||
-      m.manifest_no?.toLowerCase().includes(s) ||
+      m.manifest_number?.toLowerCase().includes(s) ||
       m.vendors?.name?.toLowerCase().includes(s);
-    return matchStatus && matchSearch;
+
+    let matchDate = true;
+    if (selectedDate) {
+      const manifestDate = new Date(m.created_at);
+      matchDate =
+        manifestDate.getDate() === selectedDate.getDate() &&
+        manifestDate.getMonth() === selectedDate.getMonth() &&
+        manifestDate.getFullYear() === selectedDate.getFullYear();
+    }
+
+    return matchStatus && matchSearch && matchDate;
   });
+
+  const totalPages = Math.ceil(filteredManifests.length / itemsPerPage);
+  const currentManifests = filteredManifests.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   // Defaults if analytics still loading
   const totalShipments = analytics?.totalShipments || 0;
@@ -183,54 +209,6 @@ export default function AnalyticsDashboard() {
               Reset All Data
             </button>
           )}
-        </div>
-        <div className="flex items-center gap-2 md:gap-3">
-          <div className="flex items-center bg-white border border-gray-200 rounded-lg px-3 py-2 gap-2 flex-1 sm:w-64 sm:flex-none shadow-sm">
-            <input
-              type="text"
-              placeholder="Search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 outline-none text-sm text-gray-600 w-full"
-            />
-            <svg
-              className="w-4 h-4 text-gray-400 flex-shrink-0"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-          <div className="relative">
-            <button
-              onClick={() => setShowCalendar(!showCalendar)}
-              className="flex items-center bg-white border border-gray-200 rounded-lg px-3 py-2 gap-2 hover:border-blue-400 whitespace-nowrap shadow-sm"
-            >
-              <span className="text-sm text-gray-600">
-                {formatDate(selectedDate)}
-              </span>
-              <svg
-                className="w-4 h-4 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </button>
-            {showCalendar && (
-              <div className="absolute right-0 top-10 z-50 shadow-lg rounded-xl overflow-hidden">
-                <Calendar
-                  onChange={(val) => {
-                    setSelectedDate(val as Date);
-                    setShowCalendar(false);
-                  }}
-                  value={selectedDate}
-                />
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
@@ -336,24 +314,98 @@ export default function AnalyticsDashboard() {
 
       {/* TABLE */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
-          <p className="font-bold text-gray-800">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between mb-4 gap-4">
+          <p className="font-bold text-gray-800 text-lg">
             Recent Shipment Exceptions
           </p>
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-medium text-gray-600">Filter:</p>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="border border-gray-300 rounded-lg text-sm px-3 py-1.5 outline-none text-gray-700 bg-gray-50 focus:border-blue-500 transition-colors"
-            >
-              <option value="ALL">ALL</option>
-              <option value="DRAFT">DRAFT</option>
-              <option value="LOCKED">LOCKED</option>
-              <option value="CHECKING">CHECKING</option>
-              <option value="COMPLETED">COMPLETED</option>
-              <option value="DISCREPANCY">DISCREPANCY</option>
-            </select>
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+            {/* SEARCH */}
+            <div className="flex items-center bg-white border border-gray-200 rounded-lg px-3 py-2 gap-2 w-full sm:w-64 shadow-sm">
+              <input
+                type="text"
+                placeholder="Cari No. Manifest atau Vendor..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="flex-1 outline-none text-sm text-gray-600 w-full bg-transparent"
+              />
+              {search ? (
+                <button onClick={() => setSearch("")} className="text-gray-400 hover:text-red-500 flex-shrink-0">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              ) : (
+                <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              )}
+            </div>
+
+            {/* DATE */}
+            <div className="relative flex items-center gap-2 w-full sm:w-auto">
+              <button
+                onClick={() => setShowCalendar(!showCalendar)}
+                className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-2 gap-2 hover:border-blue-400 whitespace-nowrap shadow-sm w-full sm:w-auto"
+              >
+                <span className="text-sm text-gray-600">
+                  {formatDate(selectedDate)}
+                </span>
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </button>
+              {selectedDate && (
+                <button onClick={() => setSelectedDate(null)} className="text-gray-400 hover:text-red-500 flex-shrink-0" title="Clear Date">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+              {showCalendar && (
+                <div className="absolute right-0 top-12 z-50 shadow-xl rounded-xl overflow-hidden bg-white border border-gray-100">
+                  <Calendar
+                    onChange={(val) => {
+                      setSelectedDate(val as Date);
+                      setShowCalendar(false);
+                    }}
+                    value={selectedDate}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* STATUS FILTER */}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="border border-gray-300 rounded-lg text-sm px-3 py-2 outline-none text-gray-700 bg-white focus:border-blue-500 transition-colors w-full sm:w-auto shadow-sm"
+              >
+                <option value="ALL">Filter by Status</option>
+                <option value="DRAFT">DRAFT</option>
+                <option value="LOCKED">LOCKED</option>
+                <option value="CHECKING">CHECKING</option>
+                <option value="COMPLETED">COMPLETED</option>
+                <option value="DISCREPANCY">DISCREPANCY</option>
+              </select>
+            </div>
+
+            {/* RESET FILTERS */}
+            {(search || selectedDate || statusFilter !== "ALL") && (
+              <button
+                onClick={() => {
+                  setSearch("");
+                  setSelectedDate(null);
+                  setStatusFilter("ALL");
+                }}
+                className="text-sm font-semibold text-gray-500 hover:text-red-500 whitespace-nowrap transition-colors flex items-center gap-1"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Reset Filters
+              </button>
+            )}
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -362,7 +414,7 @@ export default function AnalyticsDashboard() {
               <tr className="text-gray-500 border-b-2 border-gray-100 bg-gray-50">
                 <th className="text-left py-3 px-2 font-semibold rounded-tl-lg">Shipment ID</th>
                 <th className="text-left py-3 px-2 font-semibold">Date</th>
-                {user?.role !== "VENDOR" && <th className="text-left py-3 px-2 font-semibold">Vendor</th>}
+                {user?.role?.toUpperCase() !== "VENDOR" && <th className="text-left py-3 px-2 font-semibold">Vendor</th>}
                 <th className="text-left py-3 px-2 font-semibold">Items</th>
                 <th className="text-left py-3 px-2 font-semibold">Status</th>
                 <th className="text-left py-3 px-2 font-semibold rounded-tr-lg">Action</th>
@@ -371,18 +423,18 @@ export default function AnalyticsDashboard() {
             <tbody>
               {loadingManifests ? (
                 <tr>
-                  <td colSpan={user?.role !== "VENDOR" ? 6 : 5} className="py-8 text-center text-gray-500 animate-pulse">
+                  <td colSpan={user?.role?.toUpperCase() !== "VENDOR" ? 6 : 5} className="py-8 text-center text-gray-500 animate-pulse">
                     Loading recent shipments...
                   </td>
                 </tr>
               ) : filteredManifests.length === 0 ? (
                 <tr>
-                  <td colSpan={user?.role !== "VENDOR" ? 6 : 5} className="py-8 text-center text-gray-500">
+                  <td colSpan={user?.role?.toUpperCase() !== "VENDOR" ? 6 : 5} className="py-8 text-center text-gray-500">
                     No matching shipments found.
                   </td>
                 </tr>
               ) : (
-                filteredManifests.map((manifest) => (
+                currentManifests.map((manifest) => (
                   <tr key={manifest.id} className="border-b border-gray-50 hover:bg-blue-50/30 transition-colors">
                     <td className="py-3 px-2 text-gray-800 font-bold">
                       {manifest.manifest_number}
@@ -393,7 +445,7 @@ export default function AnalyticsDashboard() {
                         { year: "numeric", month: "short", day: "numeric" },
                       )}
                     </td>
-                    {user?.role !== "VENDOR" && (
+                    {user?.role?.toUpperCase() !== "VENDOR" && (
                       <td className="py-3 px-2 text-gray-600 font-medium">
                         {manifest.vendors?.name || manifest.vendor_id}
                       </td>
@@ -443,8 +495,21 @@ export default function AnalyticsDashboard() {
                           </svg>
                         </button>
 
+                        {/* Edit Button (Only for VENDOR & DRAFT) */}
+                        {manifest.status === "DRAFT" && user?.role?.toUpperCase() === "VENDOR" && (
+                          <button
+                            title="Edit"
+                            onClick={() => router.push(`/vendor/edit-shipment/${manifest.id}`)}
+                            className="w-8 h-8 border border-gray-200 bg-white rounded-full flex items-center justify-center text-gray-500 hover:text-blue-500 hover:border-blue-500 hover:shadow-sm transition-all"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </button>
+                        )}
+
                         {/* Lock Button (Only for VENDOR & DRAFT) */}
-                        {manifest.status === "DRAFT" && user?.role === "VENDOR" && (
+                        {manifest.status === "DRAFT" && user?.role?.toUpperCase() === "VENDOR" && (
                           <button
                             title="Lock"
                             onClick={() => setConfirmLockId(manifest.id)}
@@ -463,6 +528,14 @@ export default function AnalyticsDashboard() {
             </tbody>
           </table>
         </div>
+        
+        {filteredManifests.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        )}
       </div>
 
       {reviewManifestId && (
@@ -490,9 +563,9 @@ export default function AnalyticsDashboard() {
 
       <ConfirmModal
         isOpen={!!confirmLockId}
-        title="Lock Manifest"
-        message="Are you sure you want to lock this manifest? Once locked, you cannot edit it."
-        confirmText="Yes, Lock It"
+        title="Kunci Manifest"
+        message="Apakah anda yakin untuk mengunci manifest ini? Setelah dikunci, data tidak dapat diubah lagi."
+        confirmText="Ya, Kunci Manifest"
         onConfirm={() => {
           if (confirmLockId) performLock(confirmLockId);
         }}
@@ -501,9 +574,9 @@ export default function AnalyticsDashboard() {
 
       <ConfirmModal
         isOpen={confirmResetOpen}
-        title="Reset All Data"
-        message="Are you sure you want to delete ALL data? This cannot be undone."
-        confirmText="Yes, Reset"
+        title="Reset Semua Data"
+        message="Apakah Anda yakin ingin menghapus SEMUA data? Tindakan ini tidak dapat dibatalkan."
+        confirmText="Ya, Reset"
         isDanger={true}
         onConfirm={handleResetDatabase}
         onCancel={() => setConfirmResetOpen(false)}
