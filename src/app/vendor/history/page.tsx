@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import useSWR from "swr";
+import { fetcher } from "@/lib/fetcher";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import Navbar from "@/components/Navbar";
@@ -24,8 +26,31 @@ export default function VendorHistory() {
   const [reviewManifestId, setReviewManifestId] = useState<string | null>(null);
 
   const { user } = useAuth();
-  const [shipments, setShipments] = useState<Shipment[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: manifestsData, isLoading: loading, mutate } = useSWR(
+    user?.vendor_id ? `/api/manifests?vendor_id=${user.vendor_id}` : null,
+    fetcher
+  );
+
+  const shipments = manifestsData ? manifestsData.map((m: any) => {
+    const totalItems = m.manifest_items?.reduce((sum: number, item: any) => sum + item.expected_qty, 0) || 0;
+    const totalExceptions = m.discrepancies?.length || 0;
+    return {
+      id: m.manifest_number,
+      manifestId: m.id,
+      date: new Date(m.created_at).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' }),
+      item: m.vendors?.name || m.vendor_id || "Vendor",
+      status: m.status,
+      totalItems,
+      totalExceptions,
+    };
+  }) : [];
+
+  const formatDate = (date: Date) => {
+    const d = date.getDate().toString().padStart(2, "0");
+    const m = (date.getMonth() + 1).toString().padStart(2, "0");
+    const y = date.getFullYear().toString().slice(-2);
+    return `${d}/${m}/${y}`;
+  };
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -34,50 +59,6 @@ export default function VendorHistory() {
   useEffect(() => {
     setCurrentPage(1);
   }, [selectedDate]);
-
-  useEffect(() => {
-    const fetchHistory = async () => {
-      if (!user?.vendor_id) return;
-      try {
-        setLoading(true);
-        const res = await fetch(`/api/manifests?vendor_id=${user.vendor_id}`);
-        if (res.ok) {
-          const manifestsData = await res.json();
-          const flattenedShipments: Shipment[] = [];
-
-          manifestsData.forEach((m: any) => {
-            const totalItems = m.manifest_items?.reduce((sum: number, item: any) => sum + item.expected_qty, 0) || 0;
-            const totalExceptions = m.discrepancies?.length || 0;
-
-            flattenedShipments.push({
-              id: m.manifest_number,
-              manifestId: m.id,
-              date: new Date(m.created_at).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' }),
-              item: m.vendors?.name || m.vendor_id || "Vendor", // Re-purposing 'item' col to show Vendor for now, or just 'Manifest'
-              status: m.status,
-              totalItems,
-              totalExceptions,
-            });
-          });
-
-          setShipments(flattenedShipments);
-        }
-      } catch (error) {
-        console.error("Failed to fetch history:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchHistory();
-  }, [user]);
-
-  const formatDate = (date: Date) => {
-    const d = date.getDate().toString().padStart(2, "0");
-    const m = (date.getMonth() + 1).toString().padStart(2, "0");
-    const y = date.getFullYear().toString().slice(-2);
-    return `${d}/${m}/${y}`;
-  };
 
   const totalPages = Math.ceil(shipments.length / itemsPerPage);
   const currentShipments = shipments.slice(
@@ -135,7 +116,7 @@ export default function VendorHistory() {
                     <td colSpan={6} className="text-center py-8 text-gray-500">No shipment history found.</td>
                   </tr>
                 ) : (
-                  currentShipments.map((s, i) => (
+                  currentShipments.map((s: any, i: number) => (
                     <tr key={i} className="border-b border-gray-100">
                       <td className="text-center py-3 text-gray-600 px-2">{s.id}</td>
                       <td className="text-center py-3 text-gray-600 px-2">{s.date}</td>
@@ -178,7 +159,10 @@ export default function VendorHistory() {
       {reviewManifestId && (
         <ManajemenReviewModal
           manifestId={reviewManifestId}
-          onClose={() => setReviewManifestId(null)}
+          onClose={() => {
+            setReviewManifestId(null);
+            mutate();
+          }}
         />
       )}
     </div>

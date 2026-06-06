@@ -17,12 +17,14 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   logout: () => void;
+  setSession: (user: User, token: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   logout: () => {},
+  setSession: () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -71,7 +73,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     fetchSession();
-  }, [pathname]); // Pengecekan ulang bisa ditrigger jika path berubah
+  }, []); // Hanya fetch satu kali saat aplikasi pertama kali dimuat
+
+  const setSession = (userData: User, token: string) => {
+    localStorage.setItem("access_token", token);
+    document.cookie = `access_token=${token}; path=/; max-age=86400;`;
+    setUser(userData);
+  };
 
   const logout = async () => {
     localStorage.removeItem("access_token");
@@ -88,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isPageLoading = loading || (isProtectedRoute && !user);
 
   return (
-    <AuthContext.Provider value={{ user, loading, logout }}>
+    <AuthContext.Provider value={{ user, loading, logout, setSession }}>
       {isPageLoading ? (
         <div className="min-h-screen flex items-center justify-center bg-[#f0f4f8]">
           <div className="flex flex-col items-center gap-3">
