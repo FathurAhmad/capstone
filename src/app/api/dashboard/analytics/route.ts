@@ -43,10 +43,10 @@ export async function GET(request: Request) {
       where: manifestWhere,
     });
 
-    const openDiscrepancies = await prisma.discrepancies.count({
+    const openDiscrepancies = await prisma.manifests.count({
       where: {
-        resolution_status: "pending",
-        manifests: manifestWhere,
+        ...manifestWhere,
+        status: "DISCREPANCY",
       },
     });
 
