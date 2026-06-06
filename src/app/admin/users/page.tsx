@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import ConfirmModal from "@/components/ConfirmModal";
 import { useAuth } from "@/app/context/authContext";
+import Pagination from "@/components/Pagination";
 
 interface User {
   id: string;
@@ -19,6 +20,10 @@ export default function ManageUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   
   // Ubah Role State
   const [roleModalOpen, setRoleModalOpen] = useState(false);
@@ -226,8 +231,8 @@ export default function ManageUsersPage() {
           ) : users.length === 0 ? (
             <div className="p-8 text-center text-gray-500">No users found.</div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-gray-600">
+            <div className="overflow-x-auto pb-4">
+              <table className="w-full text-left text-sm text-gray-600 mb-4">
                 <thead className="bg-gray-50 text-gray-700 font-semibold border-b border-gray-200">
                   <tr>
                     <th className="px-6 py-4">Full Name</th>
@@ -238,7 +243,7 @@ export default function ManageUsersPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {users.map((u) => (
+                  {users.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((u) => (
                     <tr
                       key={u.id}
                       className="hover:bg-gray-50 transition-colors"
@@ -316,6 +321,15 @@ export default function ManageUsersPage() {
                   ))}
                 </tbody>
               </table>
+              {users.length > 0 && (
+                <div className="px-6">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={Math.ceil(users.length / itemsPerPage)}
+                    onPageChange={setCurrentPage}
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>

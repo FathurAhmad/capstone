@@ -145,8 +145,32 @@ export default function WorkspaceScannerPage() {
     }
   };
 
-  const handleFinishScan = () => {
-    router.push(`/petugas/sign-off/${id}?session_id=${sessionId}`);
+  const handleFinishScan = async () => {
+    if (!manifest || !sessionId) return;
+    
+    try {
+      const db = await getDB();
+      if (!db) return;
+      
+      const scanLogs = await db.getAllFromIndex('scan_logs', 'by-manifest', id);
+      const sessionLogs = scanLogs.filter(log => log.session_id === sessionId);
+      
+      const scannedPartIds = new Set(sessionLogs.map(log => log.part_id));
+      const expectedPartIds = new Set(manifest.items.map(item => item.part_id));
+      
+      if (scannedPartIds.size < expectedPartIds.size) {
+        const missingCount = expectedPartIds.size - scannedPartIds.size;
+        setErrorMsg(`Masih ada ${missingCount} barang yang belum melalui pengecekan! Anda harus mengecek seluruh barang di manifest ini.`);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => setErrorMsg(""), 5000);
+        return;
+      }
+      
+      router.push(`/petugas/sign-off/${id}?session_id=${sessionId}`);
+    } catch (err) {
+      console.error("Gagal memvalidasi sesi:", err);
+      setErrorMsg("Terjadi kesalahan saat memvalidasi. Silakan coba lagi.");
+    }
   };
 
   if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-white">Memuat Workspace...</div>;

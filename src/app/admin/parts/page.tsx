@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import ConfirmModal from "@/components/ConfirmModal";
+import Pagination from "@/components/Pagination";
 
 interface Part {
   id: string;
@@ -18,6 +19,10 @@ export default function ManagePartsPage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmDeleteName, setConfirmDeleteName] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Form State
   const [partNumber, setPartNumber] = useState("");
@@ -124,8 +129,8 @@ export default function ManagePartsPage() {
           ) : parts.length === 0 ? (
             <div className="p-8 text-center text-gray-500">No parts found.</div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-gray-600">
+            <div className="overflow-x-auto pb-4">
+              <table className="w-full text-left text-sm text-gray-600 mb-4">
                 <thead className="bg-gray-50 text-gray-700 font-semibold border-b border-gray-200">
                   <tr>
                     <th className="px-6 py-4 w-40">Part Number</th>
@@ -135,7 +140,7 @@ export default function ManagePartsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {parts.map((p) => (
+                  {parts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((p) => (
                     <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
                         <span className="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md font-mono text-xs font-medium">
@@ -159,6 +164,15 @@ export default function ManagePartsPage() {
                   ))}
                 </tbody>
               </table>
+              {parts.length > 0 && (
+                <div className="px-6">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={Math.ceil(parts.length / itemsPerPage)}
+                    onPageChange={setCurrentPage}
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>

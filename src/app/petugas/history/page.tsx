@@ -5,6 +5,7 @@ import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import { useAuth } from "@/app/context/authContext";
 import ManajemenReviewModal from "@/components/ManajemenReviewModal";
+import Pagination from "@/components/Pagination";
 
 type Shipment = {
   id: string;
@@ -24,6 +25,14 @@ export default function PetugasHistory() {
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedDate]);
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -67,6 +76,12 @@ export default function PetugasHistory() {
     const y = date.getFullYear().toString().slice(-2);
     return `${d}/${m}/${y}`;
   };
+
+  const totalPages = Math.ceil(shipments.length / itemsPerPage);
+  const currentShipments = shipments.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   return (
     <div className="min-h-screen bg-[#f0f4f8]">
@@ -119,7 +134,7 @@ export default function PetugasHistory() {
                     <td colSpan={7} className="text-center py-8 text-gray-500">No shipment history found.</td>
                   </tr>
                 ) : (
-                  shipments.map((s, i) => (
+                  currentShipments.map((s, i) => (
                     <tr key={i} className="border-b border-gray-100">
                       <td className="text-center py-4 text-gray-600 px-3">{s.id}</td>
                       <td className="text-center py-4 text-gray-600 px-3">{s.date}</td>
@@ -145,6 +160,13 @@ export default function PetugasHistory() {
               </tbody>
             </table>
           </div>
+          {shipments.length > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          )}
         </div>
       </div>
 
