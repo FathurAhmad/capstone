@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -30,7 +31,7 @@ export async function GET(request: Request) {
     const role = profile.role?.toUpperCase() || "USER";
     
     // 2. Build where clause
-    let manifestWhere: any = {};
+    let manifestWhere: Prisma.manifestsWhereInput = {};
     if (role === "VENDOR") {
       if (!profile.vendor_id) {
          return NextResponse.json({ error: "Vendor ID missing for this user" }, { status: 400 });
@@ -64,11 +65,17 @@ export async function GET(request: Request) {
     // Accuracy Rate
     const totalExpectedAggregate = await prisma.manifest_items.aggregate({
       _sum: { expected_qty: true },
-      where: { manifests: manifestWhere } as any,
+      where: {
+        manifests: manifestWhere
+      },
     });
     const totalVarianceAggregate = await prisma.discrepancies.aggregate({
       _sum: { variance: true },
-      where: { manifests: manifestWhere } as any,
+      where: {
+        manifest_items: {
+          manifests: manifestWhere
+        }
+      },
     });
 
     const totalExpected = totalExpectedAggregate._sum.expected_qty || 0;
@@ -91,8 +98,12 @@ export async function GET(request: Request) {
       orderBy: { created_at: 'asc' },
       select: {
         created_at: true,
-        manifest_items: { select: { expected_qty: true } },
-        discrepancies: { select: { variance: true } },
+        manifest_items: { 
+          select: { 
+            expected_qty: true,
+            discrepancies: { select: { variance: true } }
+          } 
+        },
       },
     });
 
@@ -106,9 +117,9 @@ export async function GET(request: Request) {
       
       m.manifest_items.forEach(item => {
         trendMap[dateKey].expected += (item.expected_qty || 0);
-      });
-      m.discrepancies.forEach(disc => {
-        trendMap[dateKey].variance += Math.abs(disc.variance || 0);
+        item.discrepancies.forEach(disc => {
+          trendMap[dateKey].variance += Math.abs(disc.variance || 0);
+        });
       });
     });
 
@@ -120,13 +131,23 @@ export async function GET(request: Request) {
 
     // Part Stats (Top 5)
     const allItems = await prisma.manifest_items.findMany({
-      where: { manifests: manifestWhere } as any,
+      where: {
+        manifests: manifestWhere
+      },
       include: { parts: true },
     });
     
     const allDiscrepancies = await prisma.discrepancies.findMany({
-      where: { manifests: manifestWhere } as any,
-      include: { parts: true },
+      where: {
+        manifest_items: {
+          manifests: manifestWhere
+        }
+      },
+      include: { 
+        manifest_items: {
+          include: { parts: true }
+        }
+      },
     });
 
     const partMap: Record<string, { expected: number; variance: number; name: string }> = {};
@@ -140,9 +161,10 @@ export async function GET(request: Request) {
     });
 
     allDiscrepancies.forEach(disc => {
-      if (!disc.part_id) return;
-      if (partMap[disc.part_id]) {
-        partMap[disc.part_id].variance += Math.abs(disc.variance || 0);
+      const partId = disc.manifest_items?.part_id;
+      if (!partId) return;
+      if (partMap[partId]) {
+        partMap[partId].variance += Math.abs(disc.variance || 0);
       }
     });
 

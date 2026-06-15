@@ -154,45 +154,49 @@ export async function POST(request: Request) {
         // C. Otomatisasi Tabel Discrepancies
         if (log.actual_qty !== log.expected_qty || log.scan_status !== 'MATCH') {
           hasDiscrepancy = true;
-          
-          // Cari apakah sudah ada discrepancy untuk part ini di manifest ini (mencegah duplikasi dari concurrent scan)
-          const existingDisc = await tx.discrepancies.findFirst({
-            where: {
-              manifest_id: manifest_id,
-              part_id: log.part_id,
-            }
+
+          const manifestItem = await tx.manifest_items.findFirst({
+            where: { manifest_id: manifest_id, part_id: log.part_id }
           });
-
-          if (existingDisc) {
-            // Jika sudah ada, tambahkan (aggregate) actual_qty
-            const newActualQty = existingDisc.actual_qty + log.actual_qty;
-            const newVariance = newActualQty - log.expected_qty;
-            const newType = newVariance < 0 ? 'MISSING' : (newVariance > 0 ? 'OVER' : 'DAMAGED');
-
-            await tx.discrepancies.update({
-              where: { id: existingDisc.id },
-              data: {
-                actual_qty: newActualQty,
-                variance: newVariance,
-                discrepancy_type: newType
+          
+          if (manifestItem) {
+            // Cari apakah sudah ada discrepancy untuk part ini di manifest ini (mencegah duplikasi dari concurrent scan)
+            const existingDisc = await tx.discrepancies.findFirst({
+              where: {
+                manifest_item_id: manifestItem.id,
               }
             });
-          } else {
-            // Buat baru jika belum ada
-            const variance = log.actual_qty - log.expected_qty;
-            const discrepancyType = variance < 0 ? 'MISSING' : (variance > 0 ? 'OVER' : 'DAMAGED');
-            
-            await tx.discrepancies.create({
-              data: {
-                manifest_id: manifest_id,
-                part_id: log.part_id,
-                expected_qty: log.expected_qty,
-                actual_qty: log.actual_qty,
-                variance: variance,
-                discrepancy_type: discrepancyType,
-                resolution_status: 'PENDING',
-              }
-            });
+
+            if (existingDisc) {
+              // Jika sudah ada, tambahkan (aggregate) actual_qty
+              const newActualQty = existingDisc.actual_qty + log.actual_qty;
+              const newVariance = newActualQty - log.expected_qty;
+              const newType = newVariance < 0 ? 'MISSING' : (newVariance > 0 ? 'OVER' : 'DAMAGED');
+
+              await tx.discrepancies.update({
+                where: { id: existingDisc.id },
+                data: {
+                  actual_qty: newActualQty,
+                  variance: newVariance,
+                  discrepancy_type: newType
+                }
+              });
+            } else {
+              // Buat baru jika belum ada
+              const variance = log.actual_qty - log.expected_qty;
+              const discrepancyType = variance < 0 ? 'MISSING' : (variance > 0 ? 'OVER' : 'DAMAGED');
+              
+              await tx.discrepancies.create({
+                data: {
+                  manifest_item_id: manifestItem.id,
+                  expected_qty: log.expected_qty,
+                  actual_qty: log.actual_qty,
+                  variance: variance,
+                  discrepancy_type: discrepancyType,
+                  resolution_status: 'PENDING',
+                }
+              });
+            }
           }
         }
       }
