@@ -1,40 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { supabaseAdmin } from '@/lib/supabase-admin';
-
-// Fungsi bantuan untuk mengunggah Base64 ke Supabase Storage
-async function uploadBase64Image(base64Str: string, bucket: string, path: string): Promise<string | null> {
-  try {
-    // Mengekstrak mime type dan data base64
-    const matches = base64Str.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-    if (!matches || matches.length !== 3) {
-      console.error("Format base64 tidak valid");
-      return null;
-    }
-    
-    const contentType = matches[1];
-    const base64Data = matches[2];
-    const buffer = Buffer.from(base64Data, "base64");
-
-    const { error } = await supabaseAdmin.storage
-      .from(bucket)
-      .upload(path, buffer, {
-        contentType,
-        upsert: true,
-      });
-
-    if (error) {
-      console.error(`Gagal mengunggah ke bucket ${bucket}:`, error.message);
-      return null;
-    }
-
-    const { data } = supabaseAdmin.storage.from(bucket).getPublicUrl(path);
-    return data.publicUrl;
-  } catch (err) {
-    console.error("Kesalahan saat unggah Base64:", err);
-    return null;
-  }
-}
+// Tidak lagi menggunakan uploadBase64Image karena Frontend yang akan langsung upload ke Supabase
 
 export async function POST(request: Request) {
   try {
@@ -71,34 +37,9 @@ export async function POST(request: Request) {
       }
     }
 
-    // 1. Upload Signatures (Driver & Staff)
-    let driverSigUrl = null;
-    let staffSigUrl = null;
-
-    if (signatures?.driver) {
-      const fileName = `${manifest_id}/driver_${Date.now()}.png`;
-      driverSigUrl = await uploadBase64Image(signatures.driver, 'signatures', fileName);
-    }
-    
-    if (signatures?.staff) {
-      const fileName = `${manifest_id}/staff_${Date.now()}.png`;
-      staffSigUrl = await uploadBase64Image(signatures.staff, 'signatures', fileName);
-    }
-
-    // 2. Upload Evidences secara paralel untuk mempercepat proses
-    const evidenceUrls = new Map<string, string>(); // scan_id -> url
-    if (evidences.length > 0) {
-      const uploadPromises = evidences.map(async (ev: any) => {
-        if (ev.photo_base64) {
-          const fileName = `${manifest_id}/${ev.scan_id}_${Date.now()}.jpg`;
-          const url = await uploadBase64Image(ev.photo_base64, 'evidences', fileName);
-          if (url) {
-            evidenceUrls.set(ev.scan_id, url);
-          }
-        }
-      });
-      await Promise.all(uploadPromises);
-    }
+    // 1 & 2. Mengambil URL langsung dari payload (Frontend sudah melakukan proses upload ke Supabase)
+    const driverSigUrl = signatures?.driver_url || null;
+    const staffSigUrl = signatures?.staff_url || null;
 
     // 3. Simpan data menggunakan Prisma Transaction
     const result = await prisma.$transaction(async (tx) => {
@@ -138,14 +79,13 @@ export async function POST(request: Request) {
 
         // B. Cek apakah ada foto bukti (Digital Evidence) untuk scan_log ini
         const ev = evidences.find((e: any) => e.scan_id === log.id);
-        const evUrl = evidenceUrls.get(log.id);
         
-        if (ev && evUrl) {
+        if (ev && ev.photo_url) {
           await tx.digital_evidence.create({
             data: {
               id: ev.id,
               scan_id: log.id,
-              photo_url: evUrl,
+              photo_url: ev.photo_url,
               remark: ev.remark || "",
             }
           });
