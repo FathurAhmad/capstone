@@ -5,7 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { getDB, clearAllLocalData, OfflineManifest, OfflineScanLog, OfflineEvidence } from "@/lib/idb";
 import SignaturePad, { SignaturePadRef } from "@/components/SignaturePad";
 import toast from "react-hot-toast";
-import { getSupabaseClient } from "@/lib/supabase-client";
+import { createClient } from "@supabase/supabase-js";
 
 export default function SignOffPage() {
   const params = useParams();
@@ -85,19 +85,28 @@ export default function SignOffPage() {
         try {
           const res = await fetch(base64Str);
           const blob = await res.blob();
-          const supabase = getSupabaseClient();
+          
+          // Menggunakan client Supabase bersih (tanpa custom JWT header dari aplikasi Anda)
+          // Karena jika header Authorization dikirim dengan token kustom, Supabase Storage akan menolaknya.
+          const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+          );
           
           const { error } = await supabase.storage.from(bucket).upload(path, blob, {
             contentType: blob.type,
             upsert: true
           });
           
-          if (error) throw error;
+          if (error) {
+            console.error("Supabase Upload Error Object:", error);
+            throw new Error(`Upload ${bucket} gagal: ${error.message}`);
+          }
           const { data } = supabase.storage.from(bucket).getPublicUrl(path);
           return data.publicUrl;
-        } catch (err) {
+        } catch (err: any) {
           console.error("Gagal unggah ke Supabase:", err);
-          throw new Error("Gagal mengunggah foto ke server");
+          throw new Error(err.message || "Gagal mengunggah foto ke server");
         }
       };
 
