@@ -27,14 +27,16 @@ export async function PATCH(req: Request, { params }: RouteParams) {
         resolved_at: new Date(),
         // Catatan: Pastikan kolom remark sudah ditambahkan di schema Prisma jika Anda mengirimkannya dari frontend
       },
+      include: { manifest_items: true }
     });
 
     // Logika Auto-Complete Manifest
-    if (resolution.manifest_id && status !== "HOLD" && status !== "RECOUNT") {
+    const manifestId = resolution.manifest_items?.manifest_id;
+    if (manifestId && status !== "HOLD" && status !== "RECOUNT") {
       // Cek apakah masih ada discrepancy lain dalam manifest ini yang belum selesai (masih PENDING, HOLD, atau RECOUNT)
       const unresolvedDiscrepancies = await prisma.discrepancies.count({
         where: {
-          manifest_id: resolution.manifest_id,
+          manifest_items: { manifest_id: manifestId },
           resolution_status: {
             in: ["PENDING", "HOLD", "RECOUNT"]
           }
@@ -44,7 +46,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       if (unresolvedDiscrepancies === 0) {
         // Jika semua item bermasalah sudah diputuskan, update status manifes utama menjadi COMPLETED
         await prisma.manifests.update({
-          where: { id: resolution.manifest_id },
+          where: { id: manifestId },
           data: { status: "COMPLETED" }
         });
       }

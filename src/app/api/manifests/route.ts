@@ -17,11 +17,11 @@ export async function GET(request: Request) {
             include: {
                 manifest_items: {
                     include: {
-                        parts: true
+                        parts: true,
+                        discrepancies: true
                     }
                 },
-                vendors: true,
-                discrepancies: true
+                vendors: true
             }
         });
 
