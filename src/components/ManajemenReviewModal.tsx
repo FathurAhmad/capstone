@@ -186,9 +186,8 @@ export default function ManajemenReviewModal({ manifestId, onClose }: Props) {
 
             <div className="grid grid-cols-1 gap-5">
               {manifest.manifest_items?.map((item: any, index: number) => {
-                const disc = manifest.discrepancies?.find(
-                  (d: any) => d.part_id === item.part_id,
-                );
+                // Perbaikan: discrepancies berada di dalam manifest_items (berkat refactor schema sebelumnya)
+                const disc = item.discrepancies && item.discrepancies.length > 0 ? item.discrepancies[0] : null;
                 const hasDiscrepancy = !!disc;
 
                 let photoUrl = null;
