@@ -39,7 +39,6 @@ export async function POST(request: Request) {
       driver_name, 
       vehicle_plate, 
       estimated_arrival, // Perlu dibuatkan jalur khusus agar menerima payload data tanggal dari fe
-      destination_address,
       items // Ini adalah array of objects (daftar barang)
     } = body;
 
@@ -90,7 +89,6 @@ export async function POST(request: Request) {
         vendor_id,
         driver_name,
         vehicle_plate,
-        destination_address,
         is_locked: true,
         status: ManifestStatus.LOCKED,
         // Konversi string tanggal ke object Date
