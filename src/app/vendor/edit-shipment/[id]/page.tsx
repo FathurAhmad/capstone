@@ -197,7 +197,7 @@ export default function EditShipment() {
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Date</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Estimated Arrival</label>
               <div className="relative">
                 <button onClick={() => setShowCalendar(!showCalendar)} className="w-full flex items-center justify-between border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-600 bg-white hover:border-blue-400">
                   <span>{formatDate(selectedDate)}</span>
