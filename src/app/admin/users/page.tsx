@@ -27,6 +27,10 @@ export default function ManageUsersPage() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  // Fetch Vendors
+  const { data: vendorsData } = useSWR("/api/vendors", fetcher);
+  const vendors = vendorsData?.data || [];
   
   // Ubah Role State
   const [roleModalOpen, setRoleModalOpen] = useState(false);
@@ -52,6 +56,7 @@ export default function ManageUsersPage() {
   const [userFullName, setUserFullName] = useState("");
   const [userEmail, setUserEmail] = useState("");
   const [userRole, setUserRole] = useState("");
+  const [userVendorId, setUserVendorId] = useState("");
   const [userLoading, setUserLoading] = useState(false);
 
   const handleAddUser = async (e: React.FormEvent) => {
@@ -65,6 +70,7 @@ export default function ManageUsersPage() {
           full_name: userFullName,
           email: userEmail,
           role: userRole,
+          vendor_id: userRole === "vendor" ? userVendorId : null,
         }),
       });
       if (res.ok) {
@@ -72,6 +78,7 @@ export default function ManageUsersPage() {
         setUserFullName("");
         setUserEmail("");
         setUserRole("");
+        setUserVendorId("");
         setIsModalOpen(false);
         mutate();
       } else {
@@ -394,6 +401,25 @@ export default function ManageUsersPage() {
                       <option value="vendor">Vendor</option>
                     </select>
                   </div>
+                  
+                  {userRole === "vendor" && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Pilih Perusahaan Vendor
+                      </label>
+                      <select
+                        value={userVendorId}
+                        onChange={(e) => setUserVendorId(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3a7c] text-gray-700 text-sm"
+                        required
+                      >
+                        <option value="" disabled>-- Select Vendor --</option>
+                        {vendors.map((v: any) => (
+                          <option key={v.id} value={v.id}>{v.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   <div className="pt-4 flex gap-3">
                     <button
