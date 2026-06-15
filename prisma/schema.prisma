@@ -23,20 +23,18 @@ model digital_evidence {
 }
 
 model discrepancies {
-  id                String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  manifest_id       String?    @db.Uuid
-  part_id           String?    @db.Uuid
+  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  manifest_item_id  String?         @db.Uuid
   expected_qty      Int
   actual_qty        Int
   variance          Int
-  discrepancy_type  String?    @db.VarChar(50)
-  resolution_status String?    @default("pending") @db.VarChar(50)
-  resolved_by       String?    @db.Uuid
-  resolved_at       DateTime?  @db.Timestamptz(6)
-  created_at        DateTime?  @default(now()) @db.Timestamptz(6)
-  manifests         manifests? @relation(fields: [manifest_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  parts             parts?     @relation(fields: [part_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  profiles          profiles?  @relation(fields: [resolved_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  discrepancy_type  String?         @db.VarChar(50)
+  resolution_status String?         @default("pending") @db.VarChar(50)
+  resolved_by       String?         @db.Uuid
+  resolved_at       DateTime?       @db.Timestamptz(6)
+  created_at        DateTime?       @default(now()) @db.Timestamptz(6)
+  manifest_items    manifest_items? @relation(fields: [manifest_item_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  profiles          profiles?       @relation(fields: [resolved_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("public")
 }
@@ -60,36 +58,37 @@ model inbound_sessions {
 }
 
 model manifest_items {
-  id             String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  manifest_id    String?    @db.Uuid
-  part_id        String?    @db.Uuid
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  manifest_id    String?         @db.Uuid
+  part_id        String?         @db.Uuid
   expected_qty   Int
   expected_boxes Int?
-  batch_code     String?    @db.VarChar(100)
-  created_at     DateTime?  @default(now()) @db.Timestamptz(6)
-  manifests      manifests? @relation(fields: [manifest_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  parts          parts?     @relation(fields: [part_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  batch_code     String?         @db.VarChar(100)
+  created_at     DateTime?       @default(now()) @db.Timestamptz(6)
+  manifests      manifests?      @relation(fields: [manifest_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  parts          parts?          @relation(fields: [part_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   qr_codes       qr_codes[]
+  discrepancies  discrepancies[]
 
   @@schema("public")
 }
 
 model manifests {
-  id                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  manifest_number   String             @unique @db.VarChar(100)
-  vendor_id         String             @db.Uuid
-  driver_name       String?            @db.VarChar(255)
-  vehicle_plate     String?            @db.VarChar(50)
-  departure_date    DateTime?          @db.Timestamptz(6)
-  estimated_arrival DateTime?          @db.Timestamptz(6)
-  is_locked         Boolean?           @default(false) @map("is_locked")
-  locked_at         DateTime?          @db.Timestamptz(6)
-  status            ManifestStatus     @default(DRAFT)
-  created_at        DateTime?          @default(now()) @db.Timestamptz(6)
-  discrepancies     discrepancies[]
-  inbound_sessions  inbound_sessions[]
-  manifest_items    manifest_items[]
-  vendors           vendors            @relation(fields: [vendor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id                  String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  manifest_number     String             @unique @db.VarChar(100)
+  vendor_id           String             @db.Uuid
+  driver_name         String?            @db.VarChar(255)
+  vehicle_plate       String?            @db.VarChar(50)
+  departure_date      DateTime?          @db.Timestamptz(6)
+  estimated_arrival   DateTime?          @db.Timestamptz(6)
+  destination_address String?
+  is_locked           Boolean?           @default(false) @map("is_locked")
+  locked_at           DateTime?          @db.Timestamptz(6)
+  status              ManifestStatus     @default(DRAFT)
+  created_at          DateTime?          @default(now()) @db.Timestamptz(6)
+  inbound_sessions    inbound_sessions[]
+  manifest_items      manifest_items[]
+  vendors             vendors            @relation(fields: [vendor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([vendor_id, created_at])
   @@schema("public")
@@ -102,7 +101,6 @@ model parts {
   unit           String           @db.VarChar(20)
   created_at     DateTime?        @default(now()) @db.Timestamptz(6)
   deleted_at     DateTime?        @map("deleted_at")
-  discrepancies  discrepancies[]
   manifest_items manifest_items[]
   scan_logs      scan_logs[]
 
