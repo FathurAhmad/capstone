@@ -37,6 +37,7 @@ export async function POST(request: Request) {
       driver_name, 
       vehicle_plate, 
       estimated_arrival, // Perlu dibuatkan jalur khusus agar menerima payload data tanggal dari fe
+      destination_address,
       items // Ini adalah array of objects (daftar barang)
     } = body;
 
@@ -87,6 +88,7 @@ export async function POST(request: Request) {
         vendor_id,
         driver_name,
         vehicle_plate,
+        destination_address,
         // Konversi string tanggal ke object Date
         estimated_arrival: estimated_arrival ? new Date(estimated_arrival) : null, // Bisa dibuatkan api khusus untuk mengambil data tanggal dari frontend
 
