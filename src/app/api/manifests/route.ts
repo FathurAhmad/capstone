@@ -27,6 +27,7 @@ export async function GET(request: Request) {
 
         return NextResponse.json(manifests, { status: 200 });
     } catch (error) {
-        return NextResponse.json({ error: 'Gagal mengambil data manifests'}, { status: 500});
+        console.error("API Manifests Error:", error);
+        return NextResponse.json({ error: 'Gagal mengambil data manifests', details: String(error)}, { status: 500});
     }
 }

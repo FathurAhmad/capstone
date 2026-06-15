@@ -33,7 +33,7 @@ export default function VendorHistory() {
 
   const shipments = manifestsData ? manifestsData.map((m: any) => {
     const totalItems = m.manifest_items?.reduce((sum: number, item: any) => sum + item.expected_qty, 0) || 0;
-    const totalExceptions = m.discrepancies?.length || 0;
+    const totalExceptions = m.manifest_items?.reduce((sum: number, item: any) => sum + (item.discrepancies?.length || 0), 0) || 0;
     return {
       id: m.manifest_number,
       manifestId: m.id,
