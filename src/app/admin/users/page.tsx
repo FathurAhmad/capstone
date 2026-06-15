@@ -30,7 +30,7 @@ export default function ManageUsersPage() {
 
   // Fetch Vendors
   const { data: vendorsData } = useSWR("/api/vendors", fetcher);
-  const vendors = vendorsData?.data || [];
+  const vendors = Array.isArray(vendorsData) ? vendorsData : (vendorsData?.data || []);
   
   // Ubah Role State
   const [roleModalOpen, setRoleModalOpen] = useState(false);
