@@ -57,8 +57,7 @@ export async function POST(request: Request) {
           if (variance !== 0) {
             await tx.discrepancies.create({
               data: {
-                manifest_id: log.manifest_id,
-                part_id: log.part_id,
+                manifest_item_id: item.id,
                 expected_qty: item.expected_qty,
                 actual_qty: log.actual_qty,
                 variance: variance,

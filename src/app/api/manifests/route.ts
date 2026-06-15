@@ -17,16 +17,17 @@ export async function GET(request: Request) {
             include: {
                 manifest_items: {
                     include: {
-                        parts: true
+                        parts: true,
+                        discrepancies: true
                     }
                 },
-                vendors: true,
-                discrepancies: true
+                vendors: true
             }
         });
 
         return NextResponse.json(manifests, { status: 200 });
     } catch (error) {
-        return NextResponse.json({ error: 'Gagal mengambil data manifests'}, { status: 500});
+        console.error("API Manifests Error:", error);
+        return NextResponse.json({ error: 'Gagal mengambil data manifests', details: String(error)}, { status: 500});
     }
 }

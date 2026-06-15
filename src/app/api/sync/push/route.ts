@@ -36,8 +36,7 @@ export async function POST(request: Request) {
           
           await tx.discrepancies.create({
             data: {
-              manifest_id: log.manifest_id,
-              part_id: log.part_id,
+              manifest_item_id: manifestItem.id,
               expected_qty: manifestItem.expected_qty,
               actual_qty: log.actual_qty,
               variance: variance,

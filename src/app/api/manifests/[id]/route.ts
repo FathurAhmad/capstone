@@ -16,7 +16,8 @@ export async function GET(request: Request, { params }: RouteParams) {
         manifest_items: {
           include: {
             parts: true,
-            qr_codes: true
+            qr_codes: true,
+            discrepancies: true
           }
         },
         inbound_sessions: {
@@ -28,7 +29,6 @@ export async function GET(request: Request, { params }: RouteParams) {
             }
           }
         },
-        discrepancies: true,
         vendors: true
       },
     });
