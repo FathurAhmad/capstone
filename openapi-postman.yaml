@@ -1,0 +1,1023 @@
+openapi: 3.0.0
+info:
+  title: Inbound Management API
+  version: 1.0.0
+  description: >
+    Dokumentasi API untuk Inbound Management System menggunakan Next.js dan Prisma.
+    Seluruh endpoint secara global membutuhkan autentikasi menggunakan Bearer Token (JWT),
+    kecuali endpoint login.
+servers:
+  - url: http://localhost:3000
+    description: Development Server
+security:
+  - bearerAuth: []
+paths:
+  /api/auth/login:
+    post:
+      summary: Login User
+      description: Endpoint untuk login menggunakan Supabase Auth dan mendapatkan sesi serta profil user.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Login berhasil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Login berhasil"
+                  session:
+                    type: object
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      email:
+                        type: string
+                      full_name:
+                        type: string
+                      role:
+                        type: string
+                      vendor_id:
+                        type: string
+                        format: uuid
+                        nullable: true
+        '400':
+          description: Bad Request (Input tidak valid)
+        '401':
+          description: Unauthorized (Email atau password salah)
+  /api/auth/logout:
+    post:
+      summary: Logout User
+      description: Endpoint untuk membatalkan sesi login user saat ini.
+      responses:
+        '200':
+          description: Logout berhasil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Berhasil logout"
+  /api/auth/session:
+    get:
+      summary: Validasi Sesi
+      description: Endpoint untuk memvalidasi access token yang aktif.
+      responses:
+        '200':
+          description: Sesi valid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  authenticated:
+                    type: boolean
+                  user:
+                    type: object
+    post:
+      summary: Refresh Sesi
+      description: Memperbarui access_token yang kedaluwarsa dengan menggunakan refresh_token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                access_token:
+                  type: string
+                refresh_token:
+                  type: string
+      responses:
+        '200':
+          description: Sesi berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  authenticated:
+                    type: boolean
+                  session:
+                    type: object
+                    nullable: true
+                  user:
+                    type: object
+        '401':
+          description: Sesi tidak valid atau telah kedaluwarsa
+  /api/users/register:
+    post:
+      summary: Register User
+      description: Mendaftarkan user baru ke Supabase dan membuat profil di Prisma.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - full_name
+                - email
+                - role
+              properties:
+                full_name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                role:
+                  type: string
+      responses:
+        '201':
+          description: User berhasil ditambahkan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User baru berhasil ditambahkan"
+        '400':
+          description: Validasi gagal
+  /api/users:
+    get:
+      summary: Get All Users
+      description: Mengambil daftar semua pengguna, dapat difilter berdasarkan role.
+      parameters:
+        - in: query
+          name: role
+          schema:
+            type: string
+          description: Filter user berdasarkan role
+      responses:
+        '200':
+          description: Daftar user
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Profile'
+  /api/users/{id}:
+    patch:
+      summary: Update User
+      description: Memperbarui data pengguna, termasuk password.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                full_name:
+                  type: string
+                password:
+                  type: string
+                role:
+                  type: string
+                avatar_url:
+                  type: string
+      responses:
+        '200':
+          description: Data profil berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Data profil berhasil diperbarui"
+    delete:
+      summary: Delete User
+      description: Melakukan soft delete profil pengguna (mengisi deleted_at).
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User berhasil dihapus
+  /api/vendors:
+    get:
+      summary: Get All Vendors
+      description: Mengambil daftar semua vendor yang aktif (belum dihapus).
+      responses:
+        '200':
+          description: Daftar vendor
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Vendor'
+    post:
+      summary: Create Vendor
+      description: Membuat vendor baru.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - vendor_code
+                - name
+              properties:
+                vendor_code:
+                  type: string
+                name:
+                  type: string
+                address:
+                  type: string
+      responses:
+        '201':
+          description: Vendor berhasil dibuat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vendor'
+  /api/vendors/{id}:
+    get:
+      summary: Get Vendor by ID
+      description: Mengambil satu data vendor berdasarkan ID.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detail vendor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vendor'
+        '404':
+          description: Vendor tidak ditemukan
+    patch:
+      summary: Update Vendor
+      description: Memperbarui data vendor.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                vendor_code:
+                  type: string
+                name:
+                  type: string
+                address:
+                  type: string
+      responses:
+        '200':
+          description: Vendor berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vendor'
+    delete:
+      summary: Delete Vendor
+      description: Melakukan soft delete vendor.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Vendor berhasil dihapus
+  /api/parts:
+    get:
+      summary: Get All Parts
+      description: Mengambil daftar semua barang/part yang aktif.
+      responses:
+        '200':
+          description: Daftar parts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Part'
+    post:
+      summary: Create Part
+      description: Menambahkan barang/part baru.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - part_number
+                - part_name
+                - unit
+              properties:
+                part_number:
+                  type: string
+                part_name:
+                  type: string
+                unit:
+                  type: string
+      responses:
+        '201':
+          description: Item berhasil ditambahkan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Part'
+        '409':
+          description: Nomor parts sudah pernah digunakan
+  /api/parts/{id}:
+    get:
+      summary: Get Part by ID
+      description: Mengambil informasi detail barang/part.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detail part
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Part'
+    patch:
+      summary: Update Part
+      description: Memperbarui data barang/part.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                part_number:
+                  type: string
+                part_name:
+                  type: string
+                unit:
+                  type: string
+      responses:
+        '200':
+          description: Data berhasil diperbarui
+    delete:
+      summary: Delete Part
+      description: Soft delete part.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Part berhasil dihapus
+  /api/manifests:
+    get:
+      summary: Get All Manifests
+      description: Mengambil daftar manifes beserta items, vendor, dan discrepancy.
+      parameters:
+        - in: query
+          name: vendor_id
+          schema:
+            type: string
+            format: uuid
+          description: Filter manifes berdasarkan vendor
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [DRAFT, LOCKED, CHECKING, COMPLETED, DISCREPANCY]
+          description: Filter manifes berdasarkan status
+      responses:
+        '200':
+          description: Daftar manifest
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Manifest'
+  /api/manifests/draft:
+    post:
+      summary: Create Manifest (Draft)
+      description: Menyimpan dokumen manifes baru dengan status DRAFT.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManifestCreateInput'
+      responses:
+        '201':
+          description: Manifest berhasil disimpan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Manifest'
+  /api/manifests/submit:
+    post:
+      summary: Submit Manifest
+      description: Menyimpan dokumen manifes dan langsung dikunci (status LOCKED). Meng-generate QR Code.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManifestCreateInput'
+      responses:
+        '201':
+          description: Manifest berhasil disubmit dan dilock
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Manifest'
+  /api/manifests/{id}:
+    get:
+      summary: Get Manifest Detail
+      description: Mengambil seluruh detail manifes termasuk scan_logs, discrepancy, dll.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detail manifes komplit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Manifest'
+    patch:
+      summary: Update Manifest (Draft)
+      description: Mengedit header atau isi items dari sebuah manifes. Hanya bisa dilakukan jika manifes belum dilock.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                vendor_id:
+                  type: string
+                driver_name:
+                  type: string
+                vehicle_plate:
+                  type: string
+                estimated_arrival:
+                  type: string
+                  format: date-time
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      part_id:
+                        type: string
+                        format: uuid
+                      expected_qty:
+                        type: integer
+                      expected_boxes:
+                        type: integer
+                      batch_code:
+                        type: string
+      responses:
+        '200':
+          description: Manifest diperbarui
+  /api/manifests/{id}/lock:
+    patch:
+      summary: Lock Manifest
+      description: Mengunci dokumen manifes (mengubah is_locked menjadi true dan status menjadi LOCKED), tanda barang siap diberangkatkan.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Manifest berhasil dikunci
+  /api/inbounds:
+    get:
+      summary: Get Inbound Sessions
+      description: Mengambil seluruh sesi inbound yang terdaftar.
+      responses:
+        '200':
+          description: Daftar sesi inbound
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InboundSession'
+  /api/inbounds/start:
+    post:
+      summary: Start Inbound Session
+      description: Memulai sesi proses scan kedatangan barang (mengubah status manifes ke CHECKING).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                manifest_number:
+                  type: string
+                user_id:
+                  type: string
+                  format: uuid
+                gate_number:
+                  type: string
+      responses:
+        '201':
+          description: Sesi inbound dibuka
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/InboundSession'
+        '403':
+          description: Dokumen belum dilock atau sudah dicek
+  /api/inbounds/{id}/sign-off:
+    post:
+      summary: Sign-off Inbound Session
+      description: Menyelesaikan sesi inbound dengan melampirkan signature.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                driverSignatureUrl:
+                  type: string
+                staffSignatureUrl:
+                  type: string
+      responses:
+        '200':
+          description: Sesi diakhiri dan status diubah ke COMPLETED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InboundSession'
+  /api/discrepancies/{id}/resolve:
+    patch:
+      summary: Resolve Discrepancy
+      description: Menyelesaikan atau memutuskan status perselisihan (discrepancy) item barang.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+                - resolvedBy
+              properties:
+                status:
+                  type: string
+                  enum: [APPROVED, RETURNED, RECOUNT, HOLD]
+                resolvedBy:
+                  type: string
+                  format: uuid
+                remark:
+                  type: string
+      responses:
+        '200':
+          description: Discrepancy diperbarui, jika semua clear manifes berubah status menjadi COMPLETED
+  /api/uploads/evidences:
+    post:
+      summary: Upload Image Evidence
+      description: Mengunggah file foto sebagai evidence menggunakan format formData.
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                fileName:
+                  type: string
+      responses:
+        '200':
+          description: Upload berhasil dan URL tergenerate
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+  /api/sync/scan-logs:
+    post:
+      summary: Sync Offline Scan Logs (Complete)
+      description: Sinkronisasi data log hasil scan luring/offline beserta bukti foto dan tanda tangan. Mengurus update session dan discrepancy otomatis.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                session_id:
+                  type: string
+                  format: uuid
+                manifest_id:
+                  type: string
+                  format: uuid
+                scan_logs:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      part_id:
+                        type: string
+                      actual_qty:
+                        type: integer
+                      expected_qty:
+                        type: integer
+                      scan_status:
+                        type: string
+                      scanned_at:
+                        type: string
+                        format: date-time
+                evidences:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      scan_id:
+                        type: string
+                      photo_base64:
+                        type: string
+                      remark:
+                        type: string
+                signatures:
+                  type: object
+                  properties:
+                    driver:
+                      type: string
+                    staff:
+                      type: string
+      responses:
+        '200':
+          description: Sinkronisasi berhasil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  status:
+                    type: string
+  /api/sync/pull:
+    get:
+      summary: Sync Pull Manifests
+      description: Menarik manifes yang berstatus LOCKED (untuk offline mode).
+      parameters:
+        - in: query
+          name: vendorId
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Daftar manifest dengan status LOCKED
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Manifest'
+    post:
+      summary: Sync Pull (Submit Logs)
+      description: Variasi sync lain untuk log.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                scanLogs:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        '200':
+          description: Sync sukses
+  /api/sync/push:
+    post:
+      summary: Sync Push Offline Logs
+      description: Push sinkronisasi sederhana untuk log scan.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                scanLogs:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        '200':
+          description: Sync selesai
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  processed:
+                    type: integer
+  /api/dashboard/analytics:
+    get:
+      summary: Get Analytics Dashboard
+      description: Mendapatkan ringkasan metrik dasbor. Menyesuaikan data untuk ADMIN atau VENDOR otomatis berdasar token user.
+      responses:
+        '200':
+          description: Data statistik
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalShipments:
+                    type: integer
+                  openDiscrepancies:
+                    type: integer
+                  boxesDelivered:
+                    type: integer
+                  accuracyRate:
+                    type: string
+                  trendData:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        day:
+                          type: string
+                        value:
+                          type: number
+                  partStats:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        expected:
+                          type: integer
+                        delivered:
+                          type: integer
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Profile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        full_name:
+          type: string
+        role:
+          type: string
+        avatar_url:
+          type: string
+        vendor_id:
+          type: string
+          format: uuid
+        updated_at:
+          type: string
+          format: date-time
+    Vendor:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        vendor_code:
+          type: string
+        name:
+          type: string
+        address:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    Part:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        part_number:
+          type: string
+        part_name:
+          type: string
+        unit:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    Manifest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        manifest_number:
+          type: string
+        vendor_id:
+          type: string
+          format: uuid
+        driver_name:
+          type: string
+        vehicle_plate:
+          type: string
+        departure_date:
+          type: string
+          format: date-time
+        estimated_arrival:
+          type: string
+          format: date-time
+        is_locked:
+          type: boolean
+        locked_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [DRAFT, LOCKED, CHECKING, COMPLETED, DISCREPANCY]
+        created_at:
+          type: string
+          format: date-time
+    ManifestCreateInput:
+      type: object
+      properties:
+        vendor_id:
+          type: string
+          format: uuid
+        driver_name:
+          type: string
+        vehicle_plate:
+          type: string
+        estimated_arrival:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              part_id:
+                type: string
+                format: uuid
+              expected_qty:
+                type: integer
+              expected_boxes:
+                type: integer
+              batch_code:
+                type: string
+    InboundSession:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        manifest_id:
+          type: string
+          format: uuid
+        gate_number:
+          type: string
+        actual_arrival:
+          type: string
+          format: date-time
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        driver_signature_url:
+          type: string
+        staff_signature_url:
+          type: string
+        created_by:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [IN_PROGRESS, COMPLETED]
