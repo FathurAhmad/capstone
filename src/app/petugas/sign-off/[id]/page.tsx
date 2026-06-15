@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { getDB, clearAllLocalData, OfflineManifest, OfflineScanLog, OfflineEvidence } from "@/lib/idb";
 import SignaturePad, { SignaturePadRef } from "@/components/SignaturePad";
 import toast from "react-hot-toast";
+import { getSupabaseClient } from "@/lib/supabase-client";
 
 export default function SignOffPage() {
   const params = useParams();
@@ -79,15 +80,54 @@ export default function SignOffPage() {
     setIsSubmitting(true);
 
     try {
-      // 1. Siapkan payload JSON besar untuk dikirim ke Backend API
+      // A. Upload Signatures ke Supabase
+      const uploadToSupabase = async (base64Str: string, bucket: string, path: string) => {
+        try {
+          const res = await fetch(base64Str);
+          const blob = await res.blob();
+          const supabase = getSupabaseClient();
+          
+          const { error } = await supabase.storage.from(bucket).upload(path, blob, {
+            contentType: blob.type,
+            upsert: true
+          });
+          
+          if (error) throw error;
+          const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+          return data.publicUrl;
+        } catch (err) {
+          console.error("Gagal unggah ke Supabase:", err);
+          throw new Error("Gagal mengunggah foto ke server");
+        }
+      };
+
+      const driverSigUrl = await uploadToSupabase(driverSig, "signatures", `${id}/driver_${Date.now()}.png`);
+      const staffSigUrl = await uploadToSupabase(staffSig, "signatures", `${id}/staff_${Date.now()}.png`);
+
+      // B. Upload Evidences secara paralel
+      const uploadedEvidences = await Promise.all(
+        evidences.map(async (ev) => {
+          if (ev.photo_base64) {
+            const evUrl = await uploadToSupabase(
+              ev.photo_base64, 
+              "evidences", 
+              `${id}/${ev.scan_id}_${Date.now()}.jpg`
+            );
+            return { ...ev, photo_url: evUrl, photo_base64: undefined };
+          }
+          return ev;
+        })
+      );
+
+      // 1. Siapkan payload JSON kecil (hanya URL) untuk dikirim ke Backend API
       const payload = {
         session_id: sessionId,
         manifest_id: id,
         scan_logs: scanLogs,
-        evidences: evidences,
+        evidences: uploadedEvidences,
         signatures: {
-          driver: driverSig,
-          staff: staffSig,
+          driver_url: driverSigUrl,
+          staff_url: staffSigUrl,
         }
       };
 
