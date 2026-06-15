@@ -7,7 +7,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { full_name, email, role } = body;
+    const { full_name, email, role, vendor_id } = body;
 
     // validasi input
     if (!full_name || !email || !role) {
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
         email,
         full_name,
         role,
-        // vendor_id: role === "vendor" ? vendor_id : null,
+        vendor_id: role === "vendor" ? vendor_id : null,
       },
     });
 

@@ -20,8 +20,8 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { vendor_code, name, address } = body;
 
-        if (!vendor_code || !name) {
-            return NextResponse.json({ error: "Kolom kode vendor dan nama vendor wajib diisi! "}, { status: 400 });
+        if (!name) {
+            return NextResponse.json({ error: "Nama vendor wajib diisi! "}, { status: 400 });
         }
 
         let finalCode = vendor_code;
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
         const newVendor = await prisma.vendors.create({
             data: {
-                vendor_code,
+                vendor_code: finalCode,
                 name,
                 address
             },

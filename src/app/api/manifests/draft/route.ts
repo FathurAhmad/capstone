@@ -50,14 +50,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // Mencari vendor id sebagai salah satu bagian dari manifest number
+    // Mencari vendor_code sebagai salah satu bagian dari manifest number
     const vendor = await prisma.vendors.findFirst({
       where: { id: vendor_id },
-      select: { name: true } // Mengambil id berdasarkan input nama
+      select: { vendor_code: true } // Mengambil vendor_code
     })
 
-    // Mengambil 4 digit pertama dari vendor id
-    const vendorCode = vendor?.name.substring(0, 3).toUpperCase() || "VND";
+    // Mengambil vendor_code yang asli dari database
+    const vendorCode = vendor?.vendor_code || "VND";
 
     // Mengambil data tanggal hari ini
     const todayDate = new Date();
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     })    
 
     // Menggabungkan beberapa data di atas menjadi manifest number
-    const sequence = (dailyManifestsCount + 1).toString().padStart(3, '0');
+    const sequence = (dailyManifestsCount + 1).toString().padStart(4, '0');
     const generatedManifestNumber = `${vendorCode}-${dateString}-${sequence}`;
 
     console.log(`Urutan manifest:`, sequence)

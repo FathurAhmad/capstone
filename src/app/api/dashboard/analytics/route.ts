@@ -64,11 +64,11 @@ export async function GET(request: Request) {
     // Accuracy Rate
     const totalExpectedAggregate = await prisma.manifest_items.aggregate({
       _sum: { expected_qty: true },
-      where: { manifests: manifestWhere },
+      where: { manifests: manifestWhere } as any,
     });
     const totalVarianceAggregate = await prisma.discrepancies.aggregate({
       _sum: { variance: true },
-      where: { manifests: manifestWhere },
+      where: { manifests: manifestWhere } as any,
     });
 
     const totalExpected = totalExpectedAggregate._sum.expected_qty || 0;
@@ -120,12 +120,12 @@ export async function GET(request: Request) {
 
     // Part Stats (Top 5)
     const allItems = await prisma.manifest_items.findMany({
-      where: { manifests: manifestWhere },
+      where: { manifests: manifestWhere } as any,
       include: { parts: true },
     });
     
     const allDiscrepancies = await prisma.discrepancies.findMany({
-      where: { manifests: manifestWhere },
+      where: { manifests: manifestWhere } as any,
       include: { parts: true },
     });
 
